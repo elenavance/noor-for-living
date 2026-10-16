@@ -150,6 +150,16 @@ def save_quran_progress(request):
     progress.ayah_number = ayah_number
     progress.surah_name = surah_name
     progress.save(update_fields=["surah_number", "ayah_number", "surah_name", "updated_at"])
+
+    # Reading the Quran also completes today's Quran-reading intention in the tracker.
+    daily_log, _ = DailyWorshipLog.objects.get_or_create(
+        user=request.user,
+        date=timezone.localdate(),
+    )
+    if not daily_log.quran_reading:
+        daily_log.quran_reading = True
+        daily_log.save(update_fields=["quran_reading", "updated_at"])
+
     return JsonResponse({
         "ok": True,
         "surah_number": progress.surah_number,
