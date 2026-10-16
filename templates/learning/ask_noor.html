@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123c32">
+<meta name="description" content="Explore general Islamic learning with source links and careful explanations.">
+<link rel="manifest" href="{% url 'manifest' %}"><link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/worship.css"><link rel="stylesheet" href="/static/css/ask-noor.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Ask Noor — NOOR FOR LIVING</title></head>
+<body class="worship-page ask-noor-page">
+<header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><nav class="top-nav" aria-label="Main navigation"><a href="{% url 'quran_reader' %}">Quran</a><a href="{% url 'daily_remembrance' %}">Duas &amp; dhikr</a><a href="{% url 'dashboard' %}">My Journey</a></nav></header>
+<main class="worship-main ask-noor-main"><a class="back-link" href="{% url 'dashboard' %}">← My Journey</a>
+<section class="worship-heading"><p class="eyebrow">LEARN · REFLECT · VERIFY</p><h1>Ask <i>Noor.</i></h1><p>Explore general Islamic questions with careful explanations and links to sources. Use this as a learning companion, not as a replacement for qualified scholarly guidance.</p></section>
+<section class="ask-panel">
+<div class="ask-panel-heading"><span class="ask-emblem">✧</span><div><p class="eyebrow">YOUR LEARNING SPACE</p><h2>What would you like to understand?</h2><p>Keep your question general. You do not need to share private or identifying details.</p></div></div>
+<div class="prompt-suggestions" aria-label="Example questions">
+<button type="button" data-question="What is the meaning and purpose of making dhikr?">Understanding dhikr</button>
+<button type="button" data-question="What does the Quran teach about gratitude?">Gratitude in the Quran</button>
+<button type="button" data-question="How can I begin reading the Quran consistently?">Building a Quran habit</button>
+</div>
+<form method="post" class="ask-form">
+{% csrf_token %}
+<label for="question">Your question</label>
+<textarea id="question" name="question" rows="4" maxlength="1200" required placeholder="For example: What does the Quran say about patience?">{{ question|default:"" }}</textarea>
+<div class="ask-form-footer"><span id="question-count">0 / 1200</span><button class="button button-gold" type="submit" {% if not assistant_enabled %}title="Ask Noor requires administrator setup"{% endif %}>Ask Noor <span>↗</span></button></div>
+</form>
+{% if error %}<div class="ask-alert" role="alert">{{ error }}</div>{% endif %}
+{% if result %}
+<section class="answer-panel" aria-labelledby="answer-title"><p class="eyebrow">A CAREFUL STARTING POINT</p><h2 id="answer-title">Your answer</h2><div class="answer-copy">{{ result.answer|linebreaksbr }}</div>
+{% if result.citations %}<div class="source-list"><h3>Sources to explore</h3><ul>{% for source in result.citations %}<li><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }} <span aria-hidden="true">↗</span></a></li>{% endfor %}</ul></div>{% else %}<p class="source-warning">No source links were returned for this response. Treat it as an unverified starting point and check a trusted source before relying on it.</p>{% endif %}
+</section>
+{% endif %}
+</section>
+<aside class="learning-boundaries"><span>✧</span><div><h2>Knowledge with humility</h2><p>AI can make mistakes or miss differences between scholarly views. Ask Noor does not issue fatwas and is not a substitute for a qualified scholar. For personal rulings—especially marriage, divorce, inheritance, finance, health, or legal matters—please consult an appropriate qualified professional.</p></div></aside>
+</main>
+<nav class="bottom-nav" aria-label="Quick navigation"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item" href="{% url 'prayer_times' %}"><span>◔</span><small>Prayer</small></a><a class="nav-item" href="{% url 'quran_reader' %}"><span>۞</span><small>Quran</small></a><a class="nav-item active" href="{% url 'ask_noor' %}"><span>✧</span><small>Ask Noor</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>◉</span><small>Profile</small></a></nav>
+<script>
+const questionBox=document.getElementById("question"), count=document.getElementById("question-count");
+function updateCount(){count.textContent=questionBox.value.length+" / 1200";}
+questionBox.addEventListener("input",updateCount);updateCount();
+document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>{questionBox.value=button.dataset.question;updateCount();questionBox.focus();}));
+</script></body></html>
