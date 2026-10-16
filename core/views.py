@@ -1,10 +1,13 @@
 from django.conf import settings
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import QuranBookmark
+from .models import DailyWorshipLog, QuranBookmark
 
 
 def home(request):
@@ -49,6 +52,65 @@ def daily_remembrance(request):
     ]
     categories = sorted({item["category"] for item in remembrances})
     return render(request, "worship/daily_remembrance.html", {"remembrances": remembrances, "categories": categories})
+
+
+
+@login_required
+def worship_tracker(request):
+    today = timezone.localdate()
+    log, _ = DailyWorshipLog.objects.get_or_create(user=request.user, date=today)
+    if request.method == "POST":
+        fields = ("fajr", "dhuhr", "asr", "maghrib", "isha", "quran_reading", "dhikr", "gratitude")
+        for field in fields:
+            setattr(log, field, field in request.POST)
+        log.reflection = request.POST.get("reflection", "").strip()[:500]
+        log.save()
+        return redirect("worship_tracker")
+
+    week_start = today - timedelta(days=6)
+    saved_logs = {
+        item.date: item
+        for item in DailyWorshipLog.objects.filter(user=request.user, date__gte=week_start, date__lte=today)
+    }
+    week = []
+    for offset in range(6, -1, -1):
+        day = today - timedelta(days=offset)
+        day_log = saved_logs.get(day)
+        week.append({
+            "date": day,
+            "label": day.strftime("%a"),
+            "completed": day_log.completed_count if day_log else 0,
+            "percent": day_log.progress_percent if day_log else 0,
+            "is_today": day == today,
+        })
+    completed_total = sum(day["completed"] for day in week)
+    week_percent = round(completed_total / 56 * 100)
+    streak = 0
+    check_day = today
+    if not saved_logs.get(today) or saved_logs[today].completed_count == 0:
+        check_day = today - timedelta(days=1)
+    while check_day in saved_logs and saved_logs[check_day].completed_count > 0:
+        streak += 1
+        check_day -= timedelta(days=1)
+
+    return render(request, "worship/tracker.html", {
+        "log": log,
+        "today": today,
+        "week": week,
+        "week_percent": week_percent,
+        "streak": streak,
+        "completed_total": completed_total,
+        "activity_fields": (
+            ("fajr", "Fajr", "Dawn prayer"),
+            ("dhuhr", "Dhuhr", "Midday prayer"),
+            ("asr", "Asr", "Afternoon prayer"),
+            ("maghrib", "Maghrib", "Sunset prayer"),
+            ("isha", "Isha", "Night prayer"),
+            ("quran_reading", "Quran reading", "Read or reflect on the Quran"),
+            ("dhikr", "Dhikr", "Make time for remembrance"),
+            ("gratitude", "Gratitude", "Name something you are grateful for"),
+        ),
+    })
 
 
 def quran_reader(request):
