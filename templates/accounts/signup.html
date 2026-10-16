@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#123c32"><title>Create your account — NOOR FOR LIVING</title><link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/auth.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet"></head>
+<body class="auth-body"><header class="topbar auth-topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><a class="text-link auth-top-link" href="/">Back to home ↗</a></header>
+<main class="auth-layout"><section class="auth-aside"><p class="eyebrow">YOUR JOURNEY BEGINS HERE</p><h1>A little more<br><i>light, every day.</i></h1><p>Create your personal space for worship, learning, reflection, and steady spiritual growth.</p><div class="auth-ornament">☾ <span>✧</span> ۞</div><small>INTENTION · FAITH · PEACE</small></section>
+<section class="auth-panel"><p class="eyebrow">WELCOME TO NOOR</p><h2>Create your account</h2><p class="auth-subtitle">Start your daily journey with NOOR FOR LIVING.</p>
+{% if messages %}{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}{% endif %}
+<form method="post" class="auth-form" novalidate>{% csrf_token %}
+{% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small class="field-help">{{ field.help_text|safe }}</small>{% endif %}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+<button class="button button-gold auth-submit" type="submit">Create my account <span>↗</span></button></form>
+<p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Log in</a></p><p class="auth-legal">Your account is personal. We will never ask you to share your password.</p></section></main></body></html>
