@@ -13,6 +13,25 @@ from django.core.cache import cache
 import os
 
 
+# Canonical Quran verse counts by surah, used to reject impossible references.
+SURAH_AYAH_COUNTS = (
+    7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128,
+    111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30,
+    73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45,
+    60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52,
+    52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17,
+    19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4,
+    7, 3, 6, 3, 5, 4, 5, 6,
+)
+
+
+def valid_quran_reference(surah_number, ayah_number):
+    return (
+        1 <= surah_number <= len(SURAH_AYAH_COUNTS)
+        and 1 <= ayah_number <= SURAH_AYAH_COUNTS[surah_number - 1]
+    )
+
+
 def home(request):
     return render(request, "home.html")
 
@@ -169,8 +188,8 @@ def save_quran_progress(request):
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "Invalid verse reference."}, status=400)
 
-    if not 1 <= surah_number <= 114 or not 1 <= ayah_number <= 286:
-        return JsonResponse({"ok": False, "error": "Verse reference is out of range."}, status=400)
+    if not valid_quran_reference(surah_number, ayah_number):
+        return JsonResponse({"ok": False, "error": "That verse does not exist in the selected surah."}, status=400)
 
     surah_name = request.POST.get("surah_name", "").strip()[:120]
     progress, _ = QuranReadingProgress.objects.get_or_create(
@@ -216,8 +235,8 @@ def toggle_bookmark(request):
         ayah_number = int(request.POST.get("ayah_number", ""))
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "Invalid verse reference."}, status=400)
-    if not 1 <= surah_number <= 114 or not 1 <= ayah_number <= 286:
-        return JsonResponse({"ok": False, "error": "Verse reference is out of range."}, status=400)
+    if not valid_quran_reference(surah_number, ayah_number):
+        return JsonResponse({"ok": False, "error": "That verse does not exist in the selected surah."}, status=400)
     surah_name = request.POST.get("surah_name", "").strip()[:120]
     arabic_text = request.POST.get("arabic_text", "").strip()
     translation_text = request.POST.get("translation_text", "").strip()
