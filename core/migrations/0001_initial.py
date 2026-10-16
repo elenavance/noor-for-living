@@ -5,11 +5,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     initial = True
-
-    dependencies = [
-        migrations.swappable_dependency(django.conf.settings.AUTH_USER_MODEL),
-    ]
-
+    dependencies = [migrations.swappable_dependency(django.conf.settings.AUTH_USER_MODEL)]
     operations = [
         migrations.CreateModel(
             name="QuranBookmark",
@@ -25,8 +21,5 @@ class Migration(migrations.Migration):
             ],
             options={"ordering": ["surah_number", "ayah_number"]},
         ),
-        migrations.AddConstraint(
-            model_name="quranbookmark",
-            constraint=models.UniqueConstraint(fields=("user", "surah_number", "ayah_number"), name="unique_user_quran_bookmark"),
-        ),
+        migrations.AddConstraint(model_name="quranbookmark", constraint=models.UniqueConstraint(fields=("user", "surah_number", "ayah_number"), name="unique_user_quran_bookmark")),
     ]
