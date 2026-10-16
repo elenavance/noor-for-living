@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from unittest.mock import patch
@@ -187,6 +188,7 @@ class AskNoorTests(TestCase):
             password="SecureTestPass_482!",
         )
         self.client.force_login(self.user)
+        cache.delete(f"ask-noor-rate:{self.user.pk}")
 
     def test_ask_noor_page_requires_login(self):
         self.client.logout()
@@ -198,6 +200,8 @@ class AskNoorTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Knowledge with humility")
         self.assertContains(response, "not as a replacement for qualified scholarly guidance")
+        self.assertContains(response, "external AI service")
+        self.assertContains(response, "does not save questions or answers")
 
     def test_ask_noor_handles_missing_api_configuration(self):
         with patch.dict("os.environ", {"OPENAI_API_KEY": ""}):
@@ -206,12 +210,25 @@ class AskNoorTests(TestCase):
             })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "not connected yet")
+        self.assertContains(response, "AI answers are not enabled yet")
+        self.assertContains(response, "disabled title=\"Ask Noor requires administrator setup\"")
         self.assertNotContains(response, "Your answer")
 
     def test_ask_noor_rejects_oversized_questions(self):
         response = self.client.post(reverse("ask_noor"), {"question": "x" * 1201})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "under 1,200 characters")
+
+    @patch("core.views.ask_noor", return_value={"answer": "General learning answer.", "citations": []})
+    def test_ask_noor_limits_questions_per_account(self, mock_ask):
+        for _ in range(5):
+            response = self.client.post(reverse("ask_noor"), {"question": "A general learning question"})
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Your answer")
+        response = self.client.post(reverse("ask_noor"), {"question": "One more question"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "wait a minute")
+        self.assertEqual(mock_ask.call_count, 5)
 
 
 
