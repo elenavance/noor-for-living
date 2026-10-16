@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from core.models import DailyWorshipLog, QuranBookmark
+from core.models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
 
 
 class PublicPageTests(TestCase):
@@ -49,6 +49,16 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Words to")
         self.assertContains(response, "notranslate")
+
+    def test_quran_reader_resumes_saved_position_for_signed_in_user(self):
+        user = User.objects.create_user(username="quran_reader_member", password="SecureTestPass_482!")
+        QuranReadingProgress.objects.create(user=user, surah_number=2, ayah_number=17, surah_name="Al-Baqarah")
+        self.client.force_login(user)
+        response = self.client.get(reverse("quran_reader"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reading_progress"].surah_number, 2)
+        self.assertContains(response, "initialProgress")
+        self.assertContains(response, "Al-Baqarah")
 
 
 class AccountFlowTests(TestCase):
@@ -117,3 +127,31 @@ class AccountFlowTests(TestCase):
         response = self.client.post(reverse("delete_bookmark", args=[bookmark.id]))
         self.assertEqual(response.status_code, 404)
         self.assertTrue(QuranBookmark.objects.filter(id=bookmark.id).exists())
+
+    def test_quran_progress_requires_login(self):
+        response = self.client.post(reverse("save_quran_progress"), {
+            "surah_number": "2", "ayah_number": "17", "surah_name": "Al-Baqarah"
+        })
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('save_quran_progress')}")
+
+    def test_quran_progress_is_saved_per_user(self):
+        user = User.objects.create_user(username="quran_progress_member", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.post(reverse("save_quran_progress"), {
+            "surah_number": "2", "ayah_number": "17", "surah_name": "Al-Baqarah"
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], True)
+        progress = QuranReadingProgress.objects.get(user=user)
+        self.assertEqual(progress.surah_number, 2)
+        self.assertEqual(progress.ayah_number, 17)
+        self.assertEqual(progress.surah_name, "Al-Baqarah")
+
+    def test_quran_progress_rejects_invalid_reference(self):
+        user = User.objects.create_user(username="quran_progress_invalid", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.post(reverse("save_quran_progress"), {
+            "surah_number": "115", "ayah_number": "1", "surah_name": "Invalid"
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(QuranReadingProgress.objects.filter(user=user).exists())
