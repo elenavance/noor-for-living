@@ -12,19 +12,7 @@ def home(request):
 
 
 def manifest(request):
-    manifest_data = {
-        "id": "/",
-        "name": "NOOR FOR LIVING",
-        "short_name": "Noor",
-        "description": "Your Daily Islamic Companion",
-        "start_url": "/",
-        "scope": "/",
-        "display": "standalone",
-        "background_color": "#f8f5ed",
-        "theme_color": "#123c32",
-        "lang": "en",
-        "icons": [],
-    }
+    manifest_data = {"id": "/", "name": "NOOR FOR LIVING", "short_name": "Noor", "description": "Your Daily Islamic Companion", "start_url": "/", "scope": "/", "display": "standalone", "background_color": "#f8f5ed", "theme_color": "#123c32", "lang": "en", "icons": []}
     return JsonResponse(manifest_data, content_type="application/manifest+json")
 
 
@@ -49,18 +37,13 @@ def qibla(request):
 def quran_reader(request):
     bookmarks = set()
     if request.user.is_authenticated:
-        bookmarks = set(
-            request.user.quran_bookmarks.values_list("surah_number", "ayah_number")
-        )
-    return render(request, "quran/reader.html", {
-        "saved_bookmarks": [f"{surah}:{ayah}" for surah, ayah in bookmarks],
-    })
+        bookmarks = set(request.user.quran_bookmarks.values_list("surah_number", "ayah_number"))
+    return render(request, "quran/reader.html", {"saved_bookmarks": [f"{surah}:{ayah}" for surah, ayah in bookmarks]})
 
 
 @login_required
 def my_bookmarks(request):
-    bookmarks = request.user.quran_bookmarks.all()
-    return render(request, "quran/bookmarks.html", {"bookmarks": bookmarks})
+    return render(request, "quran/bookmarks.html", {"bookmarks": request.user.quran_bookmarks.all()})
 
 
 @login_required
@@ -71,25 +54,16 @@ def toggle_bookmark(request):
         ayah_number = int(request.POST.get("ayah_number", ""))
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "Invalid verse reference."}, status=400)
-
     if not 1 <= surah_number <= 114 or not 1 <= ayah_number <= 286:
         return JsonResponse({"ok": False, "error": "Verse reference is out of range."}, status=400)
-
     surah_name = request.POST.get("surah_name", "").strip()[:120]
     arabic_text = request.POST.get("arabic_text", "").strip()
     translation_text = request.POST.get("translation_text", "").strip()
     if not surah_name or not arabic_text:
         return JsonResponse({"ok": False, "error": "Verse text is missing. Please reload the reader."}, status=400)
-
     bookmark, created = QuranBookmark.objects.get_or_create(
-        user=request.user,
-        surah_number=surah_number,
-        ayah_number=ayah_number,
-        defaults={
-            "surah_name": surah_name,
-            "arabic_text": arabic_text,
-            "translation_text": translation_text,
-        },
+        user=request.user, surah_number=surah_number, ayah_number=ayah_number,
+        defaults={"surah_name": surah_name, "arabic_text": arabic_text, "translation_text": translation_text},
     )
     if not created:
         bookmark.delete()
