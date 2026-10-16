@@ -47,12 +47,12 @@
       <div class="feature-grid">
         <a class="feature-card reveal" href="{% url 'prayer_times' %}"><span class="feature-icon">◔</span><p class="feature-index">01 / DAILY WORSHIP</p><h3>Prayer times</h3><p>View a location-based prayer schedule and make space for each prayer.</p><span class="feature-arrow">↗</span></a>
         <a class="feature-card reveal" href="{% url 'qibla' %}"><span class="feature-icon">۞</span><p class="feature-index">02 / QIBLA</p><h3>Find your direction</h3><p>Calculate the geographic direction of the Kaaba from your location.</p><span class="feature-arrow">↗</span></a>
-        <article class="feature-card reveal"><span class="feature-icon">✧</span><p class="feature-index">03 / LEARNING</p><h3>Knowledge with care</h3><p>Learn through reviewed Islamic content with clear references and context.</p><span class="feature-arrow">↗</span></article>
-        <article class="feature-card reveal"><span class="feature-icon">☾</span><p class="feature-index">04 / YOUR JOURNEY</p><h3>Small steps, sincere intentions</h3><p>Keep personal notes and gently track the worship habits you choose to build.</p><span class="feature-arrow">↗</span></article>
+        <a class="feature-card reveal" href="{% url 'quran_reader' %}"><span class="feature-icon">۞</span><p class="feature-index">03 / QURAN</p><h3>Read and reflect</h3><p>Read Quranic Arabic alongside an English translation and save verses to revisit.</p><span class="feature-arrow">↗</span></a>
+        <a class="feature-card reveal" href="{% url 'my_bookmarks' %}"><span class="feature-icon">☾</span><p class="feature-index">04 / YOUR COLLECTION</p><h3>Return to saved verses</h3><p>Keep meaningful Quran verses together in your personal saved collection.</p><span class="feature-arrow">↗</span></a>
       </div>
       <p class="coming-note">Prayer times and Qibla are the first interactive worship tools. More features will arrive as they are carefully built and reviewed.</p>
     </section>
-    <section class="closing reveal"><span class="closing-star">✧</span><p class="eyebrow">BEGIN WITH AN INTENTION</p><h2>One day. One prayer.<br><i>One step closer.</i></h2><p>May your everyday moments become opportunities for peace, gratitude, and growth.</p><a class="button button-light" href="{% url 'prayer_times' %}">Explore prayer times <span>↗</span></a></section>
+    <section class="closing reveal"><span class="closing-star">✧</span><p class="eyebrow">BEGIN WITH AN INTENTION</p><h2>One day. One prayer.<br><i>One step closer.</i></h2><p>May your everyday moments become opportunities for peace, gratitude, and growth.</p><a class="button button-light" href="{% url 'quran_reader' %}">Open Quran reader <span>↗</span></a></section>
   </main>
   <nav class="bottom-nav" aria-label="Quick navigation">
     <a class="nav-item active" href="/" aria-label="Home"><span>⌂</span><small>Home</small></a>
