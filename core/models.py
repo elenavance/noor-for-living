@@ -13,9 +13,7 @@ class QuranBookmark(models.Model):
 
     class Meta:
         ordering = ["surah_number", "ayah_number"]
-        constraints = [
-            models.UniqueConstraint(fields=["user", "surah_number", "ayah_number"], name="unique_user_quran_bookmark")
-        ]
+        constraints = [models.UniqueConstraint(fields=["user", "surah_number", "ayah_number"], name="unique_user_quran_bookmark")]
 
     def __str__(self):
         return f"{self.user} — {self.surah_name} {self.ayah_number}"
