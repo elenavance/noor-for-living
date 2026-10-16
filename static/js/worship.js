@@ -170,8 +170,8 @@
         setStatus(prayerStatus, "Prayer reminders turned off.");
       } else {
         localStorage.setItem("noor.prayerReminders", "on");
-        const location = readSavedLocation();
-        if (location) await loadPrayerTimes(location);
+        const location = readSavedLocation() || await getLocation(true);
+        await loadPrayerTimes(location);
         setStatus(prayerStatus, "Reminders are enabled on this device. Keep NOOR open for the most reliable reminders; browser timers can pause when the app is closed.");
       }
       refreshReminderLabel();
