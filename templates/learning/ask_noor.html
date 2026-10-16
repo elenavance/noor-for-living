@@ -39,4 +39,4 @@ const questionBox=document.getElementById("question"), count=document.getElement
 function updateCount(){count.textContent=questionBox.value.length+" / 1200";}
 questionBox.addEventListener("input",updateCount);updateCount();
 document.querySelectorAll("[data-question]").forEach(button=>button.addEventListener("click",()=>{questionBox.value=button.dataset.question;updateCount();questionBox.focus();}));
-</script></body></html>
+</script><script src="/static/js/app.js" defer></script></body></html>
