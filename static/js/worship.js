@@ -24,18 +24,29 @@
     element.classList.toggle("is-error", isError);
   }
 
-  function getLocation() {
+  function readSavedLocation() {
+    try { const saved = JSON.parse(localStorage.getItem("noor.savedLocation") || "null"); return saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lon) ? saved : null; }
+    catch (_) { return null; }
+  }
+  function saveLocation(location) {
+    const value = {lat: location.lat, lon: location.lon, accuracy: location.accuracy || 0, savedAt: Date.now()};
+    localStorage.setItem("noor.savedLocation", JSON.stringify(value));
+    return value;
+  }
+  function getLocation(force = false) {
+    const cached = !force && readSavedLocation();
+    if (cached) return Promise.resolve(cached);
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error("This browser does not support location services."));
         return;
       }
       navigator.geolocation.getCurrentPosition(
-        (position) => resolve({
+        (position) => resolve(saveLocation({
           lat: position.coords.latitude,
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy
-        }),
+        })),
         (error) => {
           const messages = {
             1: "Location permission was denied. Enable it in your browser settings and try again.",
@@ -53,6 +64,25 @@
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     return day + "-" + month + "-" + date.getFullYear();
+  }
+
+  let reminderTimers = [];
+  function schedulePrayerReminders(timings) {
+    reminderTimers.forEach(clearTimeout); reminderTimers = [];
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"].forEach(name => {
+      const match = String(timings[name] || "").match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return;
+      const target = new Date(); target.setHours(Number(match[1]), Number(match[2]), 0, 0);
+      const delay = target.getTime() - Date.now();
+      if (delay <= 0 || delay > 86400000) return;
+      reminderTimers.push(setTimeout(async () => {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification("NOOR FOR LIVING · " + name, {body: "It is time for " + name + " prayer.", tag: "noor-prayer-" + name.toLowerCase()});
+        } catch (_) {}
+      }, delay));
+    });
   }
 
   function showPrayerTimes(timings) {
@@ -90,6 +120,7 @@
       throw new Error("Prayer times could not be calculated for this location.");
     }
     showPrayerTimes(payload.data.timings);
+    if (localStorage.getItem("noor.prayerReminders") === "on") schedulePrayerReminders(payload.data.timings);
     const method = payload.data.meta && payload.data.meta.method && payload.data.meta.method.name;
     setStatus(prayerStatus, "Schedule loaded" + (method ? " · " + method : "") + ". Please confirm locally before relying on it.");
   }
@@ -125,11 +156,33 @@
     setStatus(qiblaStatus, "Direction calculated from your coordinates. This is a geographic bearing, not a live magnetic compass.");
   }
 
+  const reminderButton = document.getElementById("prayer-reminder-button");
+  if (reminderButton) {
+    const refreshReminderLabel = () => { reminderButton.textContent = localStorage.getItem("noor.prayerReminders") === "on" ? "Prayer reminders: On ✓" : "Enable prayer reminders"; };
+    refreshReminderLabel();
+    reminderButton.addEventListener("click", async () => {
+      if (!("Notification" in window)) { setStatus(prayerStatus, "This browser does not support notifications.", true); return; }
+      if (Notification.permission === "denied") { setStatus(prayerStatus, "Notifications are blocked in browser settings.", true); return; }
+      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+      if (permission !== "granted") { setStatus(prayerStatus, "Notification permission was not granted.", true); return; }
+      if (localStorage.getItem("noor.prayerReminders") === "on") {
+        localStorage.removeItem("noor.prayerReminders"); reminderTimers.forEach(clearTimeout); reminderTimers = [];
+        setStatus(prayerStatus, "Prayer reminders turned off.");
+      } else {
+        localStorage.setItem("noor.prayerReminders", "on");
+        const location = readSavedLocation();
+        if (location) await loadPrayerTimes(location);
+        setStatus(prayerStatus, "Reminders are enabled on this device. Keep NOOR open for the most reliable reminders; browser timers can pause when the app is closed.");
+      }
+      refreshReminderLabel();
+    });
+  }
+
   if (prayerButton) prayerButton.addEventListener("click", async () => {
     prayerButton.disabled = true;
     prayerButton.classList.add("is-loading");
     try {
-      await loadPrayerTimes(await getLocation());
+      await loadPrayerTimes(await getLocation(true));
     } catch (error) {
       setStatus(prayerStatus, error.message || "Something went wrong. Please try again.", true);
     } finally {
@@ -138,11 +191,15 @@
     }
   });
 
+  const savedLocation = readSavedLocation();
+  if (savedLocation && prayerGrid) loadPrayerTimes(savedLocation).catch(error => setStatus(prayerStatus, error.message, true));
+  if (savedLocation && needle) loadQibla(savedLocation).catch(error => setStatus(qiblaStatus, error.message, true));
+
   if (qiblaButton) qiblaButton.addEventListener("click", async () => {
     qiblaButton.disabled = true;
     qiblaButton.classList.add("is-loading");
     try {
-      await loadQibla(await getLocation());
+      await loadQibla(await getLocation(true));
     } catch (error) {
       setStatus(qiblaStatus, error.message || "Something went wrong. Please try again.", true);
     } finally {
