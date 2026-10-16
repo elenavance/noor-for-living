@@ -2,7 +2,22 @@
 import json
 import os
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+
+TRUSTED_SOURCE_DOMAINS = (
+    "quran.com",
+    "sunnah.com",
+    "seekersguidance.org",
+    "yaqeeninstitute.org",
+    "dar-alifta.org",
+    "islamweb.net",
+    "islamqa.info",
+    "islamqa.org",
+    "binbaz.org.sa",
+    "aboutislam.net",
+    "britannica.com",
+)
 
 
 SYSTEM_INSTRUCTIONS = """You are Ask Noor, an educational assistant inside NOOR FOR LIVING.
@@ -83,7 +98,10 @@ def ask_noor(question):
                     continue
                 url = annotation.get("url", "").strip()
                 title = annotation.get("title", "").strip() or url
-                if url.startswith("https://") and url not in seen_urls:
+                parsed = urlsplit(url)
+                host = (parsed.hostname or "").lower()
+                trusted = any(host == domain or host.endswith("." + domain) for domain in TRUSTED_SOURCE_DOMAINS)
+                if parsed.scheme == "https" and trusted and url not in seen_urls:
                     seen_urls.add(url)
                     citations.append({"title": title[:180], "url": url})
 
