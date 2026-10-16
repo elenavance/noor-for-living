@@ -1,42 +1,27 @@
-const CACHE_NAME = "noor-for-living-v3";
-const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/prayer-times/", "/qibla/"];
+const CACHE_NAME = "noor-for-living-v4";
+const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/prayer-times/", "/qibla/", "/quran/"];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
-  );
+self.addEventListener("activate", event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))));
   self.clients.claim();
 });
-
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      }).catch(async () => (await caches.match(event.request)) || (await caches.match("/offline/")))
-    );
+    event.respondWith(fetch(event.request).then(response => {
+      if (response.ok) { const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy)); }
+      return response;
+    }).catch(async()=> (await caches.match(event.request)) || (await caches.match("/offline/"))));
     return;
   }
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
-      return response;
-    }))
-  );
+  event.respondWith(caches.match(event.request).then(cached=>cached || fetch(event.request).then(response=>{
+    if(response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(event.request,response.clone()));
+    return response;
+  })));
 });
