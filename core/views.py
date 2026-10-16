@@ -32,3 +32,11 @@ def service_worker(request):
     response["Service-Worker-Allowed"] = "/"
     response["Cache-Control"] = "no-cache"
     return response
+
+
+def prayer_times(request):
+    return render(request, "worship/prayer_times.html")
+
+
+def qibla(request):
+    return render(request, "worship/qibla.html")
