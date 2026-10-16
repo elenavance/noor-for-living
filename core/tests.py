@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
 from core.models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
 
 
@@ -157,3 +158,38 @@ class AccountFlowTests(TestCase):
         })
         self.assertEqual(response.status_code, 400)
         self.assertFalse(QuranReadingProgress.objects.filter(user=user).exists())
+
+
+
+class AskNoorTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="ask_noor_member",
+            password="SecureTestPass_482!",
+        )
+        self.client.force_login(self.user)
+
+    def test_ask_noor_page_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("ask_noor"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('ask_noor')}")
+
+    def test_ask_noor_page_explains_safeguards(self):
+        response = self.client.get(reverse("ask_noor"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Knowledge with humility")
+        self.assertContains(response, "not a replacement for qualified scholarly guidance")
+
+    def test_ask_noor_handles_missing_api_configuration(self):
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}):
+            response = self.client.post(reverse("ask_noor"), {
+                "question": "What does the Quran teach about patience?"
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "not connected yet")
+        self.assertNotContains(response, "Your answer")
+
+    def test_ask_noor_rejects_oversized_questions(self):
+        response = self.client.post(reverse("ask_noor"), {"question": "x" * 1201})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "under 1,200 characters")
