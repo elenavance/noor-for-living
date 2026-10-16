@@ -89,7 +89,7 @@
     list.querySelectorAll(".ayah-card").forEach(card => activeObserver.observe(card));
   }
 
-  function renderAyah(ayah, surah, translatedAyah) {
+  function renderAyah(ayah, surah, translatedAyah, transliteratedAyah) {
     const reference = surah.number + ":" + ayah.numberInSurah;
     const article = make("article", "ayah-card");
     article.id = "ayah-" + ayah.numberInSurah;
@@ -144,8 +144,34 @@
     arabic.dir = "rtl";
     arabic.setAttribute("translate", "no");
     arabic.textContent = ayah.text;
+    const recitation = make("button", "ayah-audio-button", "▶ Listen");
+    recitation.type = "button";
+    recitation.setAttribute("aria-label", "Play male recitation for " + reference);
+    const pronunciation = make("p", "ayah-transliteration", transliteratedAyah.text);
+    pronunciation.setAttribute("lang", "en");
     const english = make("p", "ayah-translation", translatedAyah.text);
-    article.append(top, arabic, english);
+    recitation.addEventListener("click", async () => {
+      document.querySelectorAll(".ayah-audio-button.is-playing").forEach(b => { b.classList.remove("is-playing"); b.textContent = "▶ Listen"; });
+      recitation.disabled = true;
+      recitation.textContent = "Loading audio…";
+      try {
+        const audioData = await apiGet(API + "/ayah/" + ayah.number + "/ar.alafasy");
+        if (!audioData.audio) throw new Error("Recitation audio is not available for this verse.");
+        if (window.noorQuranAudio) window.noorQuranAudio.pause();
+        const player = new Audio(audioData.audio);
+        window.noorQuranAudio = player;
+        recitation.classList.add("is-playing");
+        recitation.textContent = "Ⅱ Playing";
+        player.addEventListener("ended", () => { recitation.classList.remove("is-playing"); recitation.textContent = "▶ Listen"; });
+        player.addEventListener("error", () => { recitation.classList.remove("is-playing"); recitation.textContent = "▶ Listen"; setStatus("Audio could not be played. Please try again.", true); });
+        await player.play();
+        setStatus("Playing male Quran recitation · Mishary Rashid Alafasy · " + reference);
+      } catch (error) {
+        recitation.textContent = "▶ Listen";
+        setStatus(error.message || "Audio could not be played.", true);
+      } finally { recitation.disabled = false; }
+    });
+    article.append(top, arabic, pronunciation, english, recitation);
     return article;
   }
 
@@ -156,18 +182,18 @@
     heading.hidden = true;
     setStatus("Loading surah " + number + "…");
     try {
-      const editions = await apiGet(API + "/surah/" + number + "/editions/quran-uthmani,en.sahih");
-      const ar = editions[0], en = editions[1];
-      if (!ar || !en || !ar.ayahs || !en.ayahs) throw new Error("This surah is not available right now.");
+      const editions = await apiGet(API + "/surah/" + number + "/editions/quran-uthmani,en.transliteration,en.sahih");
+      const ar = editions[0], transliteration = editions[1], en = editions[2];
+      if (!ar || !transliteration || !en || !ar.ayahs || !transliteration.ayahs || !en.ayahs) throw new Error("This surah is not available right now.");
       title.textContent = ar.englishName;
       meta.textContent = "SURAH " + ar.number + " · " + ar.revelationType.toUpperCase() + " · " + ar.numberOfAyahs + " VERSES";
       translation.textContent = ar.englishNameTranslation;
       heading.hidden = false;
       list.replaceChildren();
       ar.ayahs.forEach((ayah, i) => {
-        if (en.ayahs[i]) list.appendChild(renderAyah(ayah, ar, en.ayahs[i]));
+        if (en.ayahs[i] && transliteration.ayahs[i]) list.appendChild(renderAyah(ayah, ar, en.ayahs[i], transliteration.ayahs[i]));
       });
-      setStatus("Showing " + ar.englishName + ". English translation: Saheeh International.");
+      setStatus("Showing " + ar.englishName + " with Arabic, pronunciation guide, English meaning, and male recitation.");
       const url = new URL(window.location.href);
       url.searchParams.set("surah", String(number));
       window.history.replaceState({}, "", url);
