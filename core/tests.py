@@ -58,7 +58,7 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["reading_progress"].surah_number, 2)
         self.assertContains(response, "initialProgress")
-        self.assertContains(response, "Al-Baqarah")
+        self.assertEqual(response.context["reading_progress"].surah_name, "Al-Baqarah")
 
 
 class AccountFlowTests(TestCase):
