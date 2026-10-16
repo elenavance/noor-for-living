@@ -22,6 +22,18 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("javascript", response["Content-Type"])
 
+    def test_prayer_times_page_loads_without_requesting_location(self):
+        response = self.client.get(reverse("prayer_times"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Prayer times")
+        self.assertContains(response, "Your location is only requested when you tap the button.")
+
+    def test_qibla_page_loads_without_requesting_location(self):
+        response = self.client.get(reverse("qibla"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Find your")
+        self.assertContains(response, "Location is requested only when you tap the button.")
+
 
 class AccountFlowTests(TestCase):
     def test_signup_creates_user_and_logs_them_in(self):
