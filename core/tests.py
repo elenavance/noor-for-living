@@ -146,6 +146,8 @@ class AccountFlowTests(TestCase):
         self.assertEqual(progress.surah_number, 2)
         self.assertEqual(progress.ayah_number, 17)
         self.assertEqual(progress.surah_name, "Al-Baqarah")
+        today_log = DailyWorshipLog.objects.get(user=user, date=timezone.localdate())
+        self.assertTrue(today_log.quran_reading)
 
     def test_quran_progress_rejects_invalid_reference(self):
         user = User.objects.create_user(username="quran_progress_invalid", password="SecureTestPass_482!")
