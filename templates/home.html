@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <title>NOOR FOR LIVING — Your Daily Islamic Companion</title>
 </head>
-<body data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
+<body data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
   <header class="topbar">
     <a class="brand" href="/" aria-label="NOOR FOR LIVING home"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a>
     <nav class="top-nav" aria-label="Main navigation">
@@ -56,6 +56,20 @@
       <p class="coming-note">Explore Quran reading, prayer tools, and a growing collection of carefully referenced duas and dhikr.</p>
     </section>
     <section class="closing reveal"><span class="closing-star">✧</span><p class="eyebrow">BEGIN WITH AN INTENTION</p><h2>One day. One prayer.<br><i>One step closer.</i></h2><p>May your everyday moments become opportunities for peace, gratitude, and growth.</p><a class="button button-light" href="{% url 'quran_reader' %}">Open Quran reader <span>↗</span></a></section>
+    <section class="app-rating-section" id="rate-noor"><div class="app-rating-card">
+      <p class="eyebrow">HELP US GROW</p><h2>How would you rate <i>NOOR?</i></h2>
+      <p>Your feedback helps us make your daily Islamic companion more useful and welcoming.</p>
+      <form action="{% url 'submit_app_rating' %}" method="post" class="app-rating-form" id="app-rating-form">
+        {% csrf_token %}<fieldset class="rating-stars"><legend>Choose a rating from 1 to 5 stars</legend>
+        <input type="hidden" name="rating" id="app-rating-value" value="5">
+        <div class="rating-star-buttons" role="group" aria-label="App rating">
+          <button type="button" data-rating="1" aria-label="1 star">★</button><button type="button" data-rating="2" aria-label="2 stars">★</button><button type="button" data-rating="3" aria-label="3 stars">★</button><button type="button" data-rating="4" aria-label="4 stars">★</button><button type="button" data-rating="5" aria-label="5 stars" aria-pressed="true">★</button>
+        </div></fieldset>
+        <label class="rating-feedback-label" for="app-rating-feedback">Anything you'd like us to improve? <span>(optional)</span></label>
+        <textarea id="app-rating-feedback" name="feedback" maxlength="1000" rows="3" placeholder="Share a thought or suggestion…"></textarea>
+        <button class="button button-gold rating-submit" type="submit">Send feedback <span>↗</span></button>
+        <p class="rating-thanks" id="rating-thanks" hidden>Thank you. Your feedback has been received.</p>
+      </form></div></section>
   </main>
   <nav class="bottom-nav" aria-label="Quick navigation">
     <a class="nav-item active" href="/" aria-label="Home"><span>⌂</span><small>Home</small></a>

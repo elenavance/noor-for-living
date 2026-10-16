@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from unittest.mock import patch
-from core.models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from core.models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress
 
 
 class PublicPageTests(TestCase):
@@ -14,6 +14,25 @@ class PublicPageTests(TestCase):
         self.assertContains(response, "NOOR FOR LIVING")
         self.assertContains(response, 'lang="en"')
         self.assertNotContains(response, 'id="language"')
+
+    def test_homepage_contains_app_rating_form(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "How would you rate")
+        self.assertContains(response, 'name="rating"')
+
+    def test_submit_app_rating_saves_valid_rating(self):
+        response = self.client.post(reverse("submit_app_rating"), {"rating": "4", "feedback": "Looks lovely."})
+        self.assertRedirects(response, "/?rated=1#rate-noor")
+        rating = AppRating.objects.get()
+        self.assertEqual(rating.rating, 4)
+        self.assertEqual(rating.feedback, "Looks lovely.")
+        self.assertIsNone(rating.user)
+
+    def test_submit_app_rating_rejects_invalid_rating(self):
+        response = self.client.post(reverse("submit_app_rating"), {"rating": "9"})
+        self.assertRedirects(response, "/?rated=0#rate-noor")
+        self.assertEqual(AppRating.objects.count(), 0)
 
     def test_manifest_loads_in_english(self):
         response = self.client.get(reverse("manifest"))

@@ -67,9 +67,36 @@
   }
 
   let reminderTimers = [];
+  let activeAdhan = null;
+  const adhanAudioUrls = {
+    Fajr: "https://archive.org/download/adhan.recordings.from.doha.qatar/Adhan_Doha_Qatar_01_Fajr_Adhan.mp3",
+    Dhuhr: "https://archive.org/download/adhan.recordings.from.doha.qatar/Adhan_Doha_Qatar_02_Dhuhr_Adhan.mp3",
+    Asr: "https://archive.org/download/adhan.recordings.from.doha.qatar/Adhan_Doha_Qatar_03_Asr_Adhan.mp3",
+    Maghrib: "https://archive.org/download/adhan.recordings.from.doha.qatar/Adhan_Doha_Qatar_04_Maghrib_Adhan.mp3",
+    Isha: "https://archive.org/download/adhan.recordings.from.doha.qatar/Adhan_Doha_Qatar_05_Isha_Adhan.mp3"
+  };
+  const soundToggle = document.getElementById("adhan-sound-toggle");
+  const notificationToggle = document.getElementById("prayer-notification-toggle");
+  const testAdhanButton = document.getElementById("test-adhan-button");
+  const alertPreferenceStatus = document.getElementById("alert-preference-status");
+  function soundEnabled() { return localStorage.getItem("noor.adhanSound") === "on"; }
+  function notificationsEnabled() { return localStorage.getItem("noor.prayerNotifications") === "on" || (localStorage.getItem("noor.prayerReminders") === "on" && "Notification" in window && Notification.permission === "granted"); }
+  function setAlertStatus(message, isError = false) { if (!alertPreferenceStatus) return; alertPreferenceStatus.textContent = message; alertPreferenceStatus.style.color = isError ? "#a64235" : ""; }
+  async function playAdhan(name = "Dhuhr", preview = false) {
+    const audioUrl = adhanAudioUrls[name] || adhanAudioUrls.Dhuhr;
+    try {
+      if (activeAdhan) { activeAdhan.pause(); activeAdhan.currentTime = 0; }
+      activeAdhan = new Audio(audioUrl); activeAdhan.preload = "none"; activeAdhan.volume = 1;
+      await activeAdhan.play();
+      setAlertStatus(preview ? "Adhan audio is playing. Use your device's media controls to pause it." : name + " Adhan is playing.");
+      activeAdhan.addEventListener("ended", () => { activeAdhan = null; }, {once:true});
+      return true;
+    } catch (_) { setAlertStatus("Adhan audio could not start. Check your connection and tap Test Adhan sound once to allow playback.", true); return false; }
+  }
+  function stopAdhan() { if (activeAdhan) { activeAdhan.pause(); activeAdhan.currentTime = 0; activeAdhan = null; } }
   function schedulePrayerReminders(timings) {
     reminderTimers.forEach(clearTimeout); reminderTimers = [];
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (!(soundEnabled() || (notificationsEnabled() && "Notification" in window && Notification.permission === "granted"))) return;
     ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"].forEach(name => {
       const match = String(timings[name] || "").match(/^(\d{1,2}):(\d{2})/);
       if (!match) return;
@@ -77,10 +104,10 @@
       const delay = target.getTime() - Date.now();
       if (delay <= 0 || delay > 86400000) return;
       reminderTimers.push(setTimeout(async () => {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.showNotification("NOOR FOR LIVING · " + name, {body: "It is time for " + name + " prayer.", tag: "noor-prayer-" + name.toLowerCase()});
-        } catch (_) {}
+        if (soundEnabled()) await playAdhan(name);
+        if (notificationsEnabled() && "Notification" in window && Notification.permission === "granted") {
+          try { const registration = await navigator.serviceWorker.ready; await registration.showNotification("NOOR FOR LIVING · " + name, {body:"It is time for " + name + " prayer.",tag:"noor-prayer-" + name.toLowerCase()}); } catch (_) {}
+        }
       }, delay));
     });
   }
@@ -120,7 +147,7 @@
       throw new Error("Prayer times could not be calculated for this location.");
     }
     showPrayerTimes(payload.data.timings);
-    if (localStorage.getItem("noor.prayerReminders") === "on") schedulePrayerReminders(payload.data.timings);
+    schedulePrayerReminders(payload.data.timings);
     const method = payload.data.meta && payload.data.meta.method && payload.data.meta.method.name;
     setStatus(prayerStatus, "Schedule loaded" + (method ? " · " + method : "") + ". Please confirm locally before relying on it.");
   }
@@ -156,27 +183,34 @@
     setStatus(qiblaStatus, "Direction calculated from your coordinates. This is a geographic bearing, not a live magnetic compass.");
   }
 
-  const reminderButton = document.getElementById("prayer-reminder-button");
-  if (reminderButton) {
-    const refreshReminderLabel = () => { reminderButton.textContent = localStorage.getItem("noor.prayerReminders") === "on" ? "Prayer reminders: On ✓" : "Enable prayer reminders"; };
-    refreshReminderLabel();
-    reminderButton.addEventListener("click", async () => {
-      if (!("Notification" in window)) { setStatus(prayerStatus, "This browser does not support notifications.", true); return; }
-      if (Notification.permission === "denied") { setStatus(prayerStatus, "Notifications are blocked in browser settings.", true); return; }
-      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-      if (permission !== "granted") { setStatus(prayerStatus, "Notification permission was not granted.", true); return; }
-      if (localStorage.getItem("noor.prayerReminders") === "on") {
-        localStorage.removeItem("noor.prayerReminders"); reminderTimers.forEach(clearTimeout); reminderTimers = [];
-        setStatus(prayerStatus, "Prayer reminders turned off.");
-      } else {
-        localStorage.setItem("noor.prayerReminders", "on");
-        const location = readSavedLocation() || await getLocation(true);
-        await loadPrayerTimes(location);
-        setStatus(prayerStatus, "Reminders are enabled on this device. Keep NOOR open for the most reliable reminders; browser timers can pause when the app is closed.");
-      }
-      refreshReminderLabel();
+  if (soundToggle) {
+    soundToggle.checked = soundEnabled();
+    soundToggle.addEventListener("change", () => {
+      if (soundToggle.checked) { localStorage.setItem("noor.adhanSound", "on"); setAlertStatus("Adhan sound enabled. Use Test Adhan sound once to confirm playback on this device."); }
+      else { localStorage.removeItem("noor.adhanSound"); stopAdhan(); setAlertStatus(notificationsEnabled() ? "Sound is off; notifications remain enabled." : "Both alert options are off."); }
+      const cached = readSavedLocation(); if (cached && prayerGrid) loadPrayerTimes(cached).catch(() => {});
     });
   }
+  if (notificationToggle) {
+    notificationToggle.checked = notificationsEnabled() && "Notification" in window && Notification.permission === "granted";
+    notificationToggle.addEventListener("change", async () => {
+      if (!("Notification" in window)) { notificationToggle.checked = false; setAlertStatus("This browser does not support notifications. Adhan sound can still work while NOOR is open.", true); return; }
+      if (notificationToggle.checked) {
+        if (Notification.permission === "denied") { notificationToggle.checked = false; setAlertStatus("Notifications are blocked in browser settings. Enable them there to continue.", true); return; }
+        const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+        if (permission !== "granted") { notificationToggle.checked = false; localStorage.removeItem("noor.prayerNotifications"); setAlertStatus("Notification permission was not granted. You can enable sound separately.", true); return; }
+        localStorage.setItem("noor.prayerNotifications", "on"); localStorage.removeItem("noor.prayerReminders");
+        setAlertStatus(soundEnabled() ? "Adhan sound and notifications are both enabled." : "Prayer notifications are enabled; sound remains off.");
+      } else {
+        localStorage.removeItem("noor.prayerNotifications"); localStorage.removeItem("noor.prayerReminders");
+        setAlertStatus(soundEnabled() ? "Notifications are off; Adhan sound remains enabled." : "Both alert options are off.");
+      }
+      const cached = readSavedLocation();
+      if (cached && prayerGrid) { try { await loadPrayerTimes(cached); } catch (error) { setStatus(prayerStatus, error.message || "Could not refresh prayer alerts.", true); } }
+    });
+  }
+  if (testAdhanButton) testAdhanButton.addEventListener("click", () => { playAdhan("Dhuhr", true); });
+  if (soundEnabled() || notificationsEnabled()) setAlertStatus(soundEnabled() && notificationsEnabled() ? "Adhan sound and notifications are enabled." : soundEnabled() ? "Adhan sound is enabled." : "Prayer notifications are enabled.");
 
   if (prayerButton) prayerButton.addEventListener("click", async () => {
     prayerButton.disabled = true;

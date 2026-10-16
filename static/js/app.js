@@ -32,18 +32,38 @@
     nav.appendChild(account);
   }
 
-  const observer = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) { entry.target.classList.add("is-visible"); observer.unobserve(entry.target); }
-    });
-  }, {threshold: 0.1, rootMargin: "0px 0px -30px 0px"}) : null;
-  const animated = document.querySelectorAll("main section, .feature-card, .dashboard-summary > *, .member-grid article, .prayer-card, .ayah-card, .saved-verse, .tracker-panel, .ask-panel");
+  const animated = document.querySelectorAll("main section, .reveal, .feature-card, .dashboard-summary > *, .member-grid article, .prayer-card, .ayah-card, .saved-verse, .tracker-panel, .ask-panel");
+  let observer = null;
+  if ("IntersectionObserver" in window) {
+    try { observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.remove("noor-pending"); entry.target.classList.add("is-visible"); observer.unobserve(entry.target); } });
+    }, {threshold: 0.01, rootMargin: "0px"}); } catch (_) { observer = null; }
+  }
   animated.forEach((element, index) => {
     if (element.closest(".no-motion")) return;
     element.classList.add("noor-reveal");
     element.style.setProperty("--reveal-delay", Math.min(index % 5, 4) * 55 + "ms");
-    if (observer) observer.observe(element); else element.classList.add("is-visible");
+    if (observer) { element.classList.add("noor-pending"); observer.observe(element); } else element.classList.add("is-visible");
   });
+  window.setTimeout(() => document.querySelectorAll(".noor-pending").forEach(element => { element.classList.remove("noor-pending"); element.classList.add("is-visible"); }), 1200);
+
+  const ratingForm = document.getElementById("app-rating-form");
+  if (ratingForm) {
+    const ratingInput = document.getElementById("app-rating-value");
+    const starButtons = Array.from(ratingForm.querySelectorAll("[data-rating]"));
+    const paintRating = value => {
+      ratingInput.value = String(value);
+      starButtons.forEach(button => { button.classList.toggle("is-selected", Number(button.dataset.rating) <= value); button.setAttribute("aria-pressed", String(Number(button.dataset.rating) === value)); });
+    };
+    starButtons.forEach(button => button.addEventListener("click", () => paintRating(Number(button.dataset.rating))));
+    paintRating(Number(ratingInput.value || 5));
+    if (new URLSearchParams(window.location.search).get("rated") === "1") {
+      const thanks = document.getElementById("rating-thanks"); if (thanks) thanks.hidden = false;
+      const submit = ratingForm.querySelector(".rating-submit"); if (submit) submit.hidden = true;
+      const feedback = ratingForm.querySelector("#app-rating-feedback"); if (feedback) feedback.hidden = true;
+      ratingForm.querySelector(".rating-feedback-label")?.setAttribute("hidden", "");
+    }
+  }
 
   if (!localStorage.getItem("noor.welcomeSeen") && !/accounts\/(login|signup)/.test(path)) {
     const veil = document.createElement("div"); veil.className = "noor-welcome-veil";

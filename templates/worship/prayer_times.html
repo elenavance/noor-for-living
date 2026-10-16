@@ -27,7 +27,16 @@
     </section>
     <section class="location-panel">
       <div><span class="panel-icon">⌖</span><div><p class="eyebrow">YOUR LOCATION</p><h2 id="location-title">Checking saved location…</h2><p id="location-detail">Your saved location is reused automatically. Set it once, then refresh only if you move.</p></div></div>
-      <div class="location-actions"><button class="button button-gold" id="locate-button" type="button">Set / refresh location <span>↗</span></button><button class="button button-outline" id="prayer-reminder-button" type="button" aria-pressed="false">Enable prayer reminders</button></div>
+      <div class="location-actions"><button class="button button-gold" id="locate-button" type="button">Set / refresh location <span>↗</span></button></div>
+    </section>
+    <section class="prayer-alert-settings" aria-labelledby="prayer-alert-title">
+      <div><h2 id="prayer-alert-title">Prayer alerts</h2><p>Choose how you'd like NOOR to remind you at each prayer time. Sound and notifications can be controlled independently.</p></div>
+      <div class="prayer-alert-controls">
+        <label class="prayer-alert-toggle"><input type="checkbox" id="adhan-sound-toggle"> <span>Play Adhan sound</span></label>
+        <label class="prayer-alert-toggle"><input type="checkbox" id="prayer-notification-toggle"> <span>Show prayer notifications</span></label>
+        <div class="prayer-alert-actions"><button type="button" id="test-adhan-button">▶ Test Adhan sound</button></div>
+      </div>
+      <p class="alert-preference-status" id="alert-preference-status" role="status" aria-live="polite">Both alert options are off until you enable them.</p>
     </section>
     <p class="status-message" id="prayer-status" role="status" aria-live="polite">Your location is only requested when you tap the button.</p>
     <section class="prayer-panel">

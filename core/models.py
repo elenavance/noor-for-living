@@ -2,6 +2,20 @@ from django.conf import settings
 from django.db import models
 
 
+class AppRating(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="app_ratings")
+    rating = models.PositiveSmallIntegerField()
+    feedback = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [models.CheckConstraint(condition=models.Q(rating__gte=1, rating__lte=5), name="app_rating_between_1_and_5")]
+
+    def __str__(self):
+        return f"NOOR app rating: {self.rating}/5"
+
+
 class QuranBookmark(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="quran_bookmarks")
     surah_number = models.PositiveSmallIntegerField()

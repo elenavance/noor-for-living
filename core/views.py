@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from .models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress
 from .ai_learning import LearningServiceError, ask_noor
 from django.core.cache import cache
 import os
@@ -34,6 +34,19 @@ def valid_quran_reference(surah_number, ayah_number):
 
 def home(request):
     return render(request, "home.html")
+
+
+@require_POST
+def submit_app_rating(request):
+    try:
+        rating = int(request.POST.get("rating", ""))
+    except (TypeError, ValueError):
+        return redirect("/?rated=0#rate-noor")
+    if rating < 1 or rating > 5:
+        return redirect("/?rated=0#rate-noor")
+    feedback = request.POST.get("feedback", "").strip()[:1000]
+    AppRating.objects.create(user=request.user if request.user.is_authenticated else None, rating=rating, feedback=feedback)
+    return redirect("/?rated=1#rate-noor")
 
 
 def manifest(request):

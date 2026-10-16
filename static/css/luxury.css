@@ -16,3 +16,24 @@
 @media(max-width:1050px){.topbar{align-items:flex-start;flex-direction:column;gap:10px;padding:13px 5vw}.top-nav{width:100%;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding:0 0 5px;scrollbar-width:thin}.top-nav a{flex-shrink:0}.top-nav .nav-account{margin-left:auto}}
 @media(max-width:620px){.topbar{padding:12px 16px;gap:8px}.brand{font-size:12px}.top-nav{gap:16px;font-size:10px}.quran-reading-note{align-items:flex-start;flex-direction:column;gap:6px;padding:15px}.quran-note-arabic{font-size:25px}.location-actions{align-items:stretch;flex-direction:column}.location-actions>*{width:100%;justify-content:center}.noor-welcome-card{padding:25px 19px 23px}.noor-welcome-card h2{font-size:32px}.noor-welcome-steps{gap:13px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.noor-reveal{opacity:1;transform:none}}
+
+/* Mobile-safe animation defaults: content remains visible unless JS prepares a reveal. */
+.reveal{opacity:1;transform:none}
+.noor-reveal{opacity:1;transform:none;transition:opacity .65s ease,transform .65s cubic-bezier(.2,.7,.2,1);transition-delay:var(--reveal-delay,0ms)}
+.noor-reveal.noor-pending{opacity:0;transform:translateY(18px)}.noor-reveal.is-visible{opacity:1;transform:translateY(0)}
+.app-rating-section{padding:74px 20px;background:linear-gradient(180deg,#f7f3e8,#fffdf7);border-top:1px solid rgba(200,164,94,.25)}
+.app-rating-card{max-width:610px;margin:0 auto;padding:34px;background:#fffef9;border:1px solid rgba(200,164,94,.42);box-shadow:0 20px 55px rgba(8,42,35,.07);text-align:center}
+.app-rating-card h2{font:500 clamp(30px,4vw,43px)/1.2 var(--serif);color:var(--green);margin:0}.app-rating-card h2 i{font-weight:500;color:#9b8150}
+.app-rating-card>p:not(.eyebrow){color:#727d72;font-size:12px;line-height:1.8;max-width:420px;margin:13px auto 22px}
+.rating-stars{border:0;padding:0;margin:0 0 20px}.rating-stars legend{font-size:11px;color:#68766c;margin:0 auto 8px}
+.rating-star-buttons{display:flex;justify-content:center;gap:9px}.rating-star-buttons button{border:0;background:transparent;color:#d7d2c3;font-size:34px;line-height:1.2;padding:3px;cursor:pointer;transition:color .15s,transform .15s}
+.rating-star-buttons button.is-selected{color:#c49a4d}.rating-star-buttons button:focus-visible{outline:2px solid #c49a4d;outline-offset:2px}.rating-star-buttons button:hover{transform:translateY(-2px)}
+.rating-feedback-label{display:block;text-align:left;color:#506457;font-size:11px;margin:0 0 7px}.rating-feedback-label span{color:#92998f}
+#app-rating-feedback{display:block;width:100%;resize:vertical;border:1px solid rgba(18,60,50,.18);background:#fffefa;color:#20342d;padding:12px;font:12px/1.6 var(--sans);margin-bottom:15px}
+.rating-submit{justify-content:center;min-width:175px;border:0;cursor:pointer}.rating-thanks{color:#315b4d;background:#eef4ed;padding:12px;font-size:12px;line-height:1.6}
+.prayer-alert-settings{display:grid;grid-template-columns:1fr 1.1fr;gap:20px;align-items:center;margin:20px 0;padding:23px 25px;background:linear-gradient(120deg,#fffdf7,#f2eddf);border:1px solid rgba(200,164,94,.4)}
+.prayer-alert-settings h2{margin:0 0 7px;font:500 24px var(--serif);color:var(--green)}.prayer-alert-settings p{margin:0;color:#718075;font-size:11px;line-height:1.8}
+.prayer-alert-controls{display:grid;gap:12px}.prayer-alert-toggle{display:flex;align-items:center;gap:10px;color:#365447;font-size:12px;cursor:pointer}.prayer-alert-toggle input{accent-color:#174536;width:17px;height:17px}
+.prayer-alert-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}.prayer-alert-actions button{border:1px solid rgba(200,164,94,.65);padding:10px 13px;background:#fffdf7;color:#174536;font:700 10px var(--sans);cursor:pointer}
+.prayer-alert-settings .alert-preference-status{grid-column:1/-1;color:#8a6d38;min-height:16px}
+@media(max-width:620px){.app-rating-section{padding:48px 16px}.app-rating-card{padding:26px 18px}.rating-star-buttons{gap:4px}.rating-star-buttons button{font-size:32px}.prayer-alert-settings{grid-template-columns:1fr;padding:20px 17px;gap:16px}.prayer-alert-settings .alert-preference-status{grid-column:auto}}
