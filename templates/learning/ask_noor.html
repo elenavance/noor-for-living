@@ -11,7 +11,7 @@
 <main class="worship-main ask-noor-main"><a class="back-link" href="{% url 'dashboard' %}">← My Journey</a>
 <section class="worship-heading"><p class="eyebrow">LEARN · REFLECT · VERIFY</p><h1>Ask <i>Noor.</i></h1><p>Explore general Islamic questions with careful explanations and links to sources. Use this as a learning companion, not as a replacement for qualified scholarly guidance.</p></section>
 <section class="ask-panel">
-<div class="ask-panel-heading"><span class="ask-emblem">✧</span><div><p class="eyebrow">YOUR LEARNING SPACE</p><h2>What would you like to understand?</h2><p>Keep your question general. You do not need to share private or identifying details.</p></div></div>
+<div class="ask-panel-heading"><span class="ask-emblem">✧</span><div><p class="eyebrow">YOUR LEARNING SPACE</p><h2>What would you like to understand?</h2><p>Keep your question general. You do not need to share private or identifying details.</p><p class="privacy-note">When enabled, questions are processed by an external AI service. Do not include names, contact details, or sensitive personal information. NOOR FOR LIVING does not save questions or answers to your app account.</p></div></div>
 <div class="prompt-suggestions" aria-label="Example questions">
 <button type="button" data-question="What is the meaning and purpose of making dhikr?">Understanding dhikr</button>
 <button type="button" data-question="What does the Quran teach about gratitude?">Gratitude in the Quran</button>
@@ -21,7 +21,8 @@
 {% csrf_token %}
 <label for="question">Your question</label>
 <textarea id="question" name="question" rows="4" maxlength="1200" required placeholder="For example: What does the Quran say about patience?">{{ question|default:"" }}</textarea>
-<div class="ask-form-footer"><span id="question-count">0 / 1200</span><button class="button button-gold" type="submit" {% if not assistant_enabled %}title="Ask Noor requires administrator setup"{% endif %}>Ask Noor <span>↗</span></button></div>
+<div class="ask-form-footer"><span id="question-count">0 / 1200</span><button class="button button-gold" type="submit" {% if not assistant_enabled %}disabled title="Ask Noor requires administrator setup"{% endif %}>Ask Noor <span>↗</span></button></div>
+{% if not assistant_enabled %}<p class="setup-note" role="status">AI answers are not enabled yet. The reading tools and learning page are available; Ask Noor will respond once the service is configured by the administrator.</p>{% endif %}
 </form>
 {% if error %}<div class="ask-alert" role="alert">{{ error }}</div>{% endif %}
 {% if result %}
