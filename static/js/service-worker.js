@@ -1,5 +1,5 @@
-const CACHE_NAME = "noor-for-living-v6";
-const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/static/css/remembrance.css", "/static/js/remembrance.js", "/daily-remembrance/", "/prayer-times/", "/qibla/"];
+const CACHE_NAME = "noor-for-living-v7";
+const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/static/css/remembrance.css", "/static/js/remembrance.js", "/static/css/tracker.css", "/daily-remembrance/", "/prayer-times/", "/qibla/"];
 const PRIVATE_PATHS = ["/accounts/dashboard/", "/my-bookmarks/", "/quran/"];
 
 self.addEventListener("install", event => {
