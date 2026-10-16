@@ -53,3 +53,21 @@ class DailyWorshipLog(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.date}"
+
+
+class QuranReadingProgress(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quran_reading_progress",
+    )
+    surah_number = models.PositiveSmallIntegerField()
+    ayah_number = models.PositiveSmallIntegerField(default=1)
+    surah_name = models.CharField(max_length=120, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.surah_name or 'Surah ' + str(self.surah_number)} {self.ayah_number}"
