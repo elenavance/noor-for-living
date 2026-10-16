@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DailyWorshipLog, QuranBookmark
+from .models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
 
 
 @admin.register(QuranBookmark)
@@ -11,3 +11,4 @@ class QuranBookmarkAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DailyWorshipLog)
+admin.site.register(QuranReadingProgress)
