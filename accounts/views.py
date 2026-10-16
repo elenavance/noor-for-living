@@ -5,6 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 
 from .forms import SignUpForm
+from core.models import QuranReadingProgress
 
 
 def signup(request):
@@ -32,4 +33,5 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    return render(request, "accounts/dashboard.html")
+    reading_progress = QuranReadingProgress.objects.filter(user=request.user).first()
+    return render(request, "accounts/dashboard.html", {"reading_progress": reading_progress})
