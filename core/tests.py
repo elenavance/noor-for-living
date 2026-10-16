@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from core.models import DailyWorshipLog, QuranBookmark
 
 
@@ -90,7 +91,7 @@ class AccountFlowTests(TestCase):
     def test_worship_logs_are_separate_per_user(self):
         first = User.objects.create_user(username="first_tracker", password="SecureTestPass_482!")
         second = User.objects.create_user(username="second_tracker", password="SecureTestPass_482!")
-        DailyWorshipLog.objects.create(user=first, date=__import__("django.utils.timezone", fromlist=["localdate"]).localdate(), fajr=True)
+        DailyWorshipLog.objects.create(user=first, date=timezone.localdate(), fajr=True)
         self.client.force_login(second)
         response = self.client.get(reverse("worship_tracker"))
         self.assertEqual(response.status_code, 200)
