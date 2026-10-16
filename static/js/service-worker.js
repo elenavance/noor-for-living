@@ -1,5 +1,5 @@
-const CACHE_NAME = "noor-for-living-v1";
-const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js"];
+const CACHE_NAME = "noor-for-living-v2";
+const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
