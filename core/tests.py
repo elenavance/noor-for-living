@@ -159,6 +159,25 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(QuranReadingProgress.objects.filter(user=user).exists())
 
+    def test_quran_progress_rejects_ayah_beyond_selected_surah(self):
+        user = User.objects.create_user(username="quran_progress_bad_ayah", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.post(reverse("save_quran_progress"), {
+            "surah_number": "1", "ayah_number": "8", "surah_name": "Al-Fatihah"
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(QuranReadingProgress.objects.filter(user=user).exists())
+
+    def test_bookmark_rejects_ayah_beyond_selected_surah(self):
+        user = User.objects.create_user(username="bookmark_bad_ayah", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.post(reverse("toggle_bookmark"), {
+            "surah_number": "1", "ayah_number": "8", "surah_name": "Al-Fatihah",
+            "arabic_text": "Invalid", "translation_text": "Invalid"
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(QuranBookmark.objects.filter(user=user).exists())
+
 
 
 class AskNoorTests(TestCase):
@@ -193,3 +212,41 @@ class AskNoorTests(TestCase):
         response = self.client.post(reverse("ask_noor"), {"question": "x" * 1201})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "under 1,200 characters")
+
+
+
+class AskNoorServiceTests(TestCase):
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "test-model"})
+    @patch("core.ai_learning.urlopen")
+    def test_service_returns_answer_and_only_allowlisted_https_citations(self, mock_urlopen):
+        import io
+        import json
+        payload = {
+            "output": [{
+                "type": "message",
+                "content": [{
+                    "type": "output_text",
+                    "text": "A careful educational answer.",
+                    "annotations": [
+                        {"type": "url_citation", "url": "https://quran.com/2/286", "title": "Quran 2:286"},
+                        {"type": "url_citation", "url": "https://example.com/fake-source", "title": "Unverified"},
+                        {"type": "url_citation", "url": "http://sunnah.com/example", "title": "Insecure URL"},
+                        {"type": "url_citation", "url": "https://notquran.com/2/286", "title": "Lookalike domain"},
+                    ],
+                }],
+            }],
+        }
+        mock_urlopen.return_value = io.BytesIO(json.dumps(payload).encode("utf-8"))
+        from core.ai_learning import ask_noor
+        result = ask_noor("What does the Quran say about patience?")
+        self.assertEqual(result["answer"], "A careful educational answer.")
+        self.assertEqual(result["citations"], [{"title": "Quran 2:286", "url": "https://quran.com/2/286"}])
+        request = mock_urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.openai.com/v1/responses")
+        self.assertEqual(request.get_header("Authorization"), "Bearer test-key")
+
+    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    def test_service_never_calls_api_without_key(self):
+        from core.ai_learning import LearningServiceError, ask_noor
+        with self.assertRaises(LearningServiceError):
+            ask_noor("A general question")
