@@ -35,6 +35,14 @@ class PublicPageTests(TestCase):
         self.assertContains(response, "Find your")
         self.assertContains(response, "Location is requested only when you tap the button.")
 
+    def test_daily_remembrance_page_loads_with_references(self):
+        response = self.client.get(reverse("daily_remembrance"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Words for")
+        self.assertContains(response, "Quran 2:201")
+        self.assertContains(response, "Sahih al-Bukhari 6405")
+        self.assertContains(response, "Search the collection")
+
     def test_quran_reader_page_loads(self):
         response = self.client.get(reverse("quran_reader"))
         self.assertEqual(response.status_code, 200)
