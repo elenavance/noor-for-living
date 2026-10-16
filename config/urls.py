@@ -8,6 +8,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("", views.home, name="home"),
+    path("", include("core.urls")),
     path("manifest.webmanifest", views.manifest, name="manifest"),
     path("service-worker.js", views.service_worker, name="service_worker"),
     path("offline/", TemplateView.as_view(template_name="offline.html"), name="offline"),
