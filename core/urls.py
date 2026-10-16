@@ -5,6 +5,7 @@ urlpatterns = [
     path("prayer-times/", views.prayer_times, name="prayer_times"),
     path("qibla/", views.qibla, name="qibla"),
     path("daily-remembrance/", views.daily_remembrance, name="daily_remembrance"),
+    path("my-journey/", views.worship_tracker, name="worship_tracker"),
     path("quran/", views.quran_reader, name="quran_reader"),
     path("my-bookmarks/", views.my_bookmarks, name="my_bookmarks"),
     path("my-bookmarks/<int:bookmark_id>/delete/", views.delete_bookmark, name="delete_bookmark"),
