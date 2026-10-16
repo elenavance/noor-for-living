@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import DailyWorshipLog, QuranBookmark
+from .models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
 
 
 def home(request):
@@ -115,9 +115,47 @@ def worship_tracker(request):
 
 def quran_reader(request):
     bookmarks = set()
+    reading_progress = None
     if request.user.is_authenticated:
         bookmarks = set(request.user.quran_bookmarks.values_list("surah_number", "ayah_number"))
-    return render(request, "quran/reader.html", {"saved_bookmarks": [f"{surah}:{ayah}" for surah, ayah in bookmarks]})
+        reading_progress = QuranReadingProgress.objects.filter(user=request.user).first()
+    return render(request, "quran/reader.html", {
+        "saved_bookmarks": [f"{surah}:{ayah}" for surah, ayah in bookmarks],
+        "reading_progress": reading_progress,
+    })
+
+
+@login_required
+@require_POST
+def save_quran_progress(request):
+    try:
+        surah_number = int(request.POST.get("surah_number", ""))
+        ayah_number = int(request.POST.get("ayah_number", ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid verse reference."}, status=400)
+
+    if not 1 <= surah_number <= 114 or not 1 <= ayah_number <= 286:
+        return JsonResponse({"ok": False, "error": "Verse reference is out of range."}, status=400)
+
+    surah_name = request.POST.get("surah_name", "").strip()[:120]
+    progress, _ = QuranReadingProgress.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "surah_number": surah_number,
+            "ayah_number": ayah_number,
+            "surah_name": surah_name,
+        },
+    )
+    progress.surah_number = surah_number
+    progress.ayah_number = ayah_number
+    progress.surah_name = surah_name
+    progress.save(update_fields=["surah_number", "ayah_number", "surah_name", "updated_at"])
+    return JsonResponse({
+        "ok": True,
+        "surah_number": progress.surah_number,
+        "ayah_number": progress.ayah_number,
+        "surah_name": progress.surah_name,
+    })
 
 
 @login_required
