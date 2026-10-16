@@ -34,6 +34,23 @@ def qibla(request):
     return render(request, "worship/qibla.html")
 
 
+
+def daily_remembrance(request):
+    remembrances = [
+        {"id":"rabbana-atina","category":"Guidance","kind":"dua","title":"Good in this life and the next","arabic":"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ","transliteration":"Rabbana atina fid-dunya hasanatan wa fil-akhirati hasanatan wa qina adhaban-nar.","translation":"Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire.","source":"Quran 2:201","note":"A comprehensive supplication asking for good in both lives."},
+        {"id":"rabbi-zidni","category":"Learning","kind":"dua","title":"Ask for beneficial knowledge","arabic":"رَبِّ زِدْنِي عِلْمًا","transliteration":"Rabbi zidni ilma.","translation":"My Lord, increase me in knowledge.","source":"Quran 20:114","note":"A short supplication when seeking knowledge."},
+        {"id":"rabbi-shrah","category":"Guidance","kind":"dua","title":"Ease and clarity","arabic":"رَبِّ اشْرَحْ لِي صَدْرِي ۝ وَيَسِّرْ لِي أَمْرِي ۝ وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي ۝ يَفْقَهُوا قَوْلِي","transliteration":"Rabbishrah li sadri, wa yassir li amri, wahlul uqdatan min lisani, yafqahu qawli.","translation":"My Lord, expand for me my chest, ease for me my task, and untie the knot from my tongue so that they may understand my speech.","source":"Quran 20:25–28","note":"The supplication of Prophet Musa when preparing to speak."},
+        {"id":"la-tuzigh","category":"Steadfastness","kind":"dua","title":"Keep the heart steadfast","arabic":"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ","transliteration":"Rabbana la tuzigh qulubana bada idh hadaytana wa hab lana min ladunka rahmah, innaka antal-Wahhab.","translation":"Our Lord, let not our hearts deviate after You have guided us and grant us from Yourself mercy. Indeed, You are the Bestower.","source":"Quran 3:8","note":"A supplication for guidance and steadfastness."},
+        {"id":"parents","category":"Family","kind":"dua","title":"Pray for your parents and the believers","arabic":"رَبَّنَا اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ","transliteration":"Rabbanaghfir li wa liwalidayya wa lil-mu'minina yawma yaqumul-hisab.","translation":"Our Lord, forgive me, my parents, and the believers on the Day the account is established.","source":"Quran 14:41","note":"A prayer for forgiveness for oneself, one's parents, and the believers."},
+        {"id":"hasbunallah","category":"Trust","kind":"dua","title":"Place your trust in Allah","arabic":"حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ","transliteration":"Hasbunallahu wa ni'mal-wakil.","translation":"Sufficient for us is Allah, and He is the best Disposer of affairs.","source":"Quran 3:173","note":"A declaration of reliance upon Allah."},
+        {"id":"subhanallah","category":"Remembrance","kind":"dhikr","title":"Glory and praise","arabic":"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ","transliteration":"SubhanAllahi wa bihamdihi.","translation":"Glory be to Allah and praise be to Him.","source":"Sahih al-Bukhari 6405","note":"A well-known phrase of remembrance."},
+        {"id":"istighfar","category":"Forgiveness","kind":"dhikr","title":"Seek forgiveness","arabic":"أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ","transliteration":"Astaghfirullaha wa atubu ilayh.","translation":"I seek forgiveness from Allah and repent to Him.","source":"Sahih al-Bukhari 6307","note":"A phrase of seeking forgiveness and repentance."},
+        {"id":"hawqala","category":"Trust","kind":"dhikr","title":"Strength comes through Allah","arabic":"لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ","transliteration":"La hawla wa la quwwata illa billah.","translation":"There is no power and no strength except through Allah.","source":"Sahih al-Bukhari 6384","note":"A phrase acknowledging dependence upon Allah."},
+    ]
+    categories = sorted({item["category"] for item in remembrances})
+    return render(request, "worship/daily_remembrance.html", {"remembrances": remembrances, "categories": categories})
+
+
 def quran_reader(request):
     bookmarks = set()
     if request.user.is_authenticated:
