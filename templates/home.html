@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <title>NOOR FOR LIVING — Your Daily Islamic Companion</title>
 </head>
-<body>
+<body data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
   <header class="topbar">
     <a class="brand" href="/" aria-label="NOOR FOR LIVING home"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a>
     <nav class="top-nav" aria-label="Main navigation">
