@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import QuranBookmark
+from .models import DailyWorshipLog, QuranBookmark
 
 
 @admin.register(QuranBookmark)
@@ -8,3 +8,6 @@ class QuranBookmarkAdmin(admin.ModelAdmin):
     list_filter = ("surah_number", "created_at")
     search_fields = ("user__username", "user__email", "surah_name", "translation_text")
     readonly_fields = ("created_at",)
+
+
+admin.site.register(DailyWorshipLog)
