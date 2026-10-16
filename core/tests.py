@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from core.models import QuranBookmark
 
 
 class PublicPageTests(TestCase):
@@ -34,16 +35,16 @@ class PublicPageTests(TestCase):
         self.assertContains(response, "Find your")
         self.assertContains(response, "Location is requested only when you tap the button.")
 
+    def test_quran_reader_page_loads(self):
+        response = self.client.get(reverse("quran_reader"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Words to")
+        self.assertContains(response, "notranslate")
+
 
 class AccountFlowTests(TestCase):
     def test_signup_creates_user_and_logs_them_in(self):
-        response = self.client.post(reverse("signup"), {
-            "first_name": "Amina",
-            "username": "amina_test",
-            "email": "amina@example.com",
-            "password1": "SecureTestPass_482!",
-            "password2": "SecureTestPass_482!",
-        })
+        response = self.client.post(reverse("signup"), {"first_name":"Amina","username":"amina_test","email":"amina@example.com","password1":"SecureTestPass_482!","password2":"SecureTestPass_482!"})
         self.assertRedirects(response, reverse("dashboard"))
         self.assertTrue(User.objects.filter(username="amina_test", first_name="Amina").exists())
         self.assertIn("_auth_user_id", self.client.session)
@@ -54,8 +55,26 @@ class AccountFlowTests(TestCase):
 
     def test_login_with_valid_credentials(self):
         User.objects.create_user(username="member", password="SecureTestPass_482!")
-        response = self.client.post(reverse("login"), {
-            "username": "member",
-            "password": "SecureTestPass_482!",
-        })
+        response = self.client.post(reverse("login"), {"username":"member","password":"SecureTestPass_482!"})
         self.assertRedirects(response, reverse("dashboard"))
+
+    def test_bookmarks_page_requires_login(self):
+        response = self.client.get(reverse("my_bookmarks"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('my_bookmarks')}")
+
+    def test_bookmark_saved_to_signed_in_user(self):
+        user = User.objects.create_user(username="member", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.post(reverse("toggle_bookmark"), {"surah_number":"1","ayah_number":"1","surah_name":"Al-Fatihah","arabic_text":"بِسْمِ اللَّهِ","translation_text":"In the name of Allah."})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["saved"])
+        self.assertTrue(QuranBookmark.objects.filter(user=user, surah_number=1, ayah_number=1).exists())
+
+    def test_user_cannot_delete_another_users_bookmark(self):
+        owner = User.objects.create_user(username="owner", password="SecureTestPass_482!")
+        other = User.objects.create_user(username="other", password="SecureTestPass_482!")
+        bookmark = QuranBookmark.objects.create(user=owner, surah_number=1, ayah_number=1, surah_name="Al-Fatihah", arabic_text="text")
+        self.client.force_login(other)
+        response = self.client.post(reverse("delete_bookmark", args=[bookmark.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(QuranBookmark.objects.filter(id=bookmark.id).exists())
