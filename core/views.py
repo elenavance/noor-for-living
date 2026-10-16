@@ -59,6 +59,10 @@ def qibla(request):
     return render(request, "worship/qibla.html")
 
 
+def islamic_calendar(request):
+    return render(request, "calendar.html")
+
+
 
 def daily_remembrance(request):
     remembrances = [
