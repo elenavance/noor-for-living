@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123c32">
+  <meta name="description" content="Prayer times for your current location with NOOR FOR LIVING.">
+  <link rel="manifest" href="{% url 'manifest' %}">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/worship.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Prayer Times — NOOR FOR LIVING</title>
+</head>
+<body class="worship-page">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a>
+    <nav class="top-nav" aria-label="Main navigation"><a href="/">Home</a><a href="{% url 'qibla' %}">Qibla</a><a href="{% url 'dashboard' %}">My Journey</a></nav>
+  </header>
+  <main class="worship-main">
+    <a class="back-link" href="{% url 'dashboard' %}">← My Journey</a>
+    <section class="worship-heading">
+      <p class="eyebrow">YOUR DAILY WORSHIP</p>
+      <h1>Make room for <i>prayer.</i></h1>
+      <p>Find today's prayer schedule for your location. Times are provided as guidance; your local mosque or religious authority may use a different calculation method.</p>
+    </section>
+    <section class="location-panel">
+      <div><span class="panel-icon">⌖</span><div><p class="eyebrow">YOUR LOCATION</p><h2 id="location-title">Location not set</h2><p id="location-detail">Allow location access to calculate nearby prayer times.</p></div></div>
+      <button class="button button-gold" id="locate-button" type="button">Use my location <span>↗</span></button>
+    </section>
+    <p class="status-message" id="prayer-status" role="status" aria-live="polite">Your location is only requested when you tap the button.</p>
+    <section class="prayer-panel">
+      <div class="prayer-panel-heading"><div><p class="eyebrow">TODAY'S SCHEDULE</p><h2 id="prayer-date">Prayer times</h2></div><span class="calculation-note">Calculation: Singapore (MUIS)</span></div>
+      <div class="prayer-grid" id="prayer-grid">
+        <article class="prayer-card"><span>FAJR</span><strong>—:—</strong><small>Before sunrise</small></article>
+        <article class="prayer-card"><span>SUNRISE</span><strong>—:—</strong><small>Sunrise</small></article>
+        <article class="prayer-card"><span>DHUHR</span><strong>—:—</strong><small>Midday prayer</small></article>
+        <article class="prayer-card"><span>ASR</span><strong>—:—</strong><small>Afternoon prayer</small></article>
+        <article class="prayer-card"><span>MAGHRIB</span><strong>—:—</strong><small>After sunset</small></article>
+        <article class="prayer-card"><span>ISHA</span><strong>—:—</strong><small>Night prayer</small></article>
+      </div>
+      <p class="fine-print">Prayer times are fetched from the AlAdhan timings service using your device's location. For religious observance, please confirm the schedule with your local mosque or official authority.</p>
+    </section>
+    <section class="worship-shortcut"><div><p class="eyebrow">FIND THE DIRECTION OF PRAYER</p><h2>Turn your heart <i>toward the Kaaba.</i></h2><p>Use your location to calculate the Qibla bearing.</p></div><a class="button button-gold" href="{% url 'qibla' %}">Open Qibla <span>↗</span></a></section>
+  </main>
+  <nav class="bottom-nav" aria-label="Quick navigation"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item active" href="{% url 'prayer_times' %}"><span>◔</span><small>Prayer</small></a><a class="nav-item" href="{% url 'qibla' %}"><span>۞</span><small>Qibla</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>▤</span><small>Journey</small></a></nav>
+  <script src="/static/js/worship.js" defer></script>
+</body>
+</html>
