@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="google" content="notranslate"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123c32"><meta name="description" content="Read the Holy Quran in Arabic with an English translation and save verses for later.">
+<link rel="manifest" href="{% url 'manifest' %}"><link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/auth.css"><link rel="stylesheet" href="/static/css/worship.css"><link rel="stylesheet" href="/static/css/quran.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Quran Reader — NOOR FOR LIVING</title>
+</head>
+<body class="quran-page">
+<header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><nav class="top-nav" aria-label="Main navigation"><a href="/">Home</a><a href="{% url 'prayer_times' %}">Prayer times</a><a href="{% url 'my_bookmarks' %}">My bookmarks</a></nav></header>
+<main class="quran-main">
+<a class="back-link" href="{% url 'dashboard' %}">← My Journey</a>
+<section class="worship-heading"><p class="eyebrow">READ · REFLECT · RETURN</p><h1>Words to <i>guide the heart.</i></h1><p>Read the Quran in Arabic alongside an English translation. Save verses you would like to revisit.</p></section>
+<section class="reader-controls"><label for="surah-select"><span class="eyebrow">CHOOSE A SURAH</span><select id="surah-select"><option value="">Loading surahs…</option></select></label><a class="button button-gold" href="{% url 'my_bookmarks' %}">Saved verses <span>↗</span></a></section>
+<p id="quran-status" class="status-message" role="status" aria-live="polite">Loading Quran index…</p>
+<section id="surah-heading" class="surah-heading" hidden><p class="eyebrow" id="surah-meta"></p><h2 id="surah-title"></h2><p id="surah-translation"></p></section>
+<section id="ayah-list" class="ayah-list" aria-live="polite"><div class="reader-placeholder">The reader will appear here once the Quran text is loaded.</div></section>
+<div class="reader-footer"><span>Quran text and English translation provided by AlQuran Cloud.</span><span>NOOR FOR LIVING</span></div>
+</main>
+<nav class="bottom-nav" aria-label="Quick navigation"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item" href="{% url 'prayer_times' %}"><span>◔</span><small>Prayer</small></a><a class="nav-item active" href="{% url 'quran_reader' %}"><span>۞</span><small>Quran</small></a><a class="nav-item" href="{% url 'my_bookmarks' %}"><span>▤</span><small>Saved</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>◉</span><small>Profile</small></a></nav>
+<form id="csrf-form" hidden>{% csrf_token %}</form>
+<script>window.NOOR_QURAN_CONFIG={isAuthenticated:{% if user.is_authenticated %}true{% else %}false{% endif %},loginUrl:"{% url 'login' %}",bookmarkUrl:"{% url 'toggle_bookmark' %}",savedVerses:{{ saved_bookmarks|safe }}};</script>
+<script src="/static/js/quran.js" defer></script>
+</body></html>
