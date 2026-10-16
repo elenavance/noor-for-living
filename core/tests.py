@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from core.models import QuranBookmark
+from core.models import DailyWorshipLog, QuranBookmark
 
 
 class PublicPageTests(TestCase):
@@ -65,6 +65,36 @@ class AccountFlowTests(TestCase):
         User.objects.create_user(username="member", password="SecureTestPass_482!")
         response = self.client.post(reverse("login"), {"username":"member","password":"SecureTestPass_482!"})
         self.assertRedirects(response, reverse("dashboard"))
+
+    def test_worship_tracker_requires_login(self):
+        response = self.client.get(reverse("worship_tracker"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('worship_tracker')}")
+
+    def test_worship_tracker_saves_private_daily_progress(self):
+        user = User.objects.create_user(username="tracker_member", password="SecureTestPass_482!")
+        self.client.force_login(user)
+        response = self.client.get(reverse("worship_tracker"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your daily intentions")
+        response = self.client.post(reverse("worship_tracker"), {
+            "fajr": "on", "quran_reading": "on", "reflection": "Grateful for today."
+        })
+        self.assertRedirects(response, reverse("worship_tracker"))
+        log = DailyWorshipLog.objects.get(user=user)
+        self.assertTrue(log.fajr)
+        self.assertTrue(log.quran_reading)
+        self.assertFalse(log.isha)
+        self.assertEqual(log.reflection, "Grateful for today.")
+        self.assertEqual(log.completed_count, 2)
+
+    def test_worship_logs_are_separate_per_user(self):
+        first = User.objects.create_user(username="first_tracker", password="SecureTestPass_482!")
+        second = User.objects.create_user(username="second_tracker", password="SecureTestPass_482!")
+        DailyWorshipLog.objects.create(user=first, date=__import__("django.utils.timezone", fromlist=["localdate"]).localdate(), fajr=True)
+        self.client.force_login(second)
+        response = self.client.get(reverse("worship_tracker"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["log"].fajr)
 
     def test_bookmarks_page_requires_login(self):
         response = self.client.get(reverse("my_bookmarks"))
