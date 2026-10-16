@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -21,7 +18,7 @@ def manifest(request):
         "display": "standalone",
         "background_color": "#f8f5ed",
         "theme_color": "#123c32",
-        "lang": "id",
+        "lang": "en",
         "icons": [],
     }
     return JsonResponse(manifest_data, content_type="application/manifest+json")
