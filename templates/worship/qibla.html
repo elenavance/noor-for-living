@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <title>Qibla Direction — NOOR FOR LIVING</title>
 </head>
-<body class="worship-page">
+<body class="worship-page" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
   <header class="topbar">
     <a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a>
     <nav class="top-nav" aria-label="Main navigation"><a href="/">Home</a><a href="{% url 'prayer_times' %}">Prayer times</a><a href="{% url 'dashboard' %}">My Journey</a></nav>
