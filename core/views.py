@@ -8,6 +8,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from .ai_learning import LearningServiceError, ask_noor
+from django.core.cache import cache
+import os
 
 
 def home(request):
@@ -111,6 +114,38 @@ def worship_tracker(request):
             ("gratitude", "Gratitude", "Name something you are grateful for"),
         ),
     })
+
+
+
+@login_required
+def ask_noor_view(request):
+    context = {"assistant_enabled": bool(os.getenv("OPENAI_API_KEY", "").strip())}
+    if request.method == "POST":
+        question = request.POST.get("question", "").strip()
+        context["question"] = question[:1200]
+        if not question:
+            context["error"] = "Please enter a question first."
+        elif len(question) > 1200:
+            context["error"] = "Please keep your question under 1,200 characters."
+        else:
+            # Limit API spending to five questions per account per minute.
+            cache_key = f"ask-noor-rate:{request.user.pk}"
+            if not cache.add(cache_key, 1, timeout=60):
+                try:
+                    count = cache.incr(cache_key)
+                except ValueError:
+                    cache.set(cache_key, 2, timeout=60)
+                    count = 2
+            else:
+                count = 1
+            if count > 5:
+                context["error"] = "You've asked several questions recently. Please wait a minute before asking again."
+            else:
+                try:
+                    context["result"] = ask_noor(question)
+                except LearningServiceError as exc:
+                    context["error"] = str(exc)
+    return render(request, "learning/ask_noor.html", context)
 
 
 def quran_reader(request):
