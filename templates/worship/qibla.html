@@ -23,7 +23,7 @@
     <section class="worship-heading">
       <p class="eyebrow">YOUR DAILY WORSHIP</p>
       <h1>Find your <i>direction.</i></h1>
-      <p>The Qibla is the direction of the Kaaba in Makkah. Allow location access to calculate the bearing from where you are.</p>
+      <p>The Qibla is the direction of the Kaaba in Makkah. Your saved location is reused automatically. Set it once on Prayer Times, or refresh it if you move.</p>
     </section>
     <section class="qibla-panel">
       <div class="compass-wrap" aria-label="Compass showing the calculated Qibla direction">
@@ -32,8 +32,8 @@
       <p class="eyebrow">CALCULATED BEARING FROM TRUE NORTH</p>
       <div class="bearing-readout"><strong id="qibla-bearing">—°</strong><span id="qibla-cardinal">Awaiting location</span></div>
       <p id="qibla-distance" class="qibla-distance">Your distance to the Kaaba will appear here.</p>
-      <button class="button button-gold" id="qibla-locate-button" type="button">Find my Qibla <span>↗</span></button>
-      <p id="qibla-status" class="status-message" role="status" aria-live="polite">Location is requested only when you tap the button.</p>
+      <button class="button button-gold" id="qibla-locate-button" type="button">Refresh my location <span>↗</span></button>
+      <p id="qibla-status" class="status-message" role="status" aria-live="polite">If you already set your location on Prayer Times, your Qibla direction will appear automatically.</p>
       <p class="fine-print">This page calculates a geographic bearing, not a certified magnetic-compass reading. Phone sensors can be affected by calibration, nearby metal, and interference. Follow your local mosque's guidance when precision is important.</p>
     </section>
     <section class="worship-shortcut"><div><p class="eyebrow">YOUR DAILY SCHEDULE</p><h2>Make time for <i>each prayer.</i></h2><p>View today's prayer times for your location.</p></div><a class="button button-gold" href="{% url 'prayer_times' %}">Prayer times <span>↗</span></a></section>
