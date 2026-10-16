@@ -17,3 +17,39 @@ class QuranBookmark(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.surah_name} {self.ayah_number}"
+
+
+class DailyWorshipLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="daily_worship_logs")
+    date = models.DateField()
+    fajr = models.BooleanField(default=False)
+    dhuhr = models.BooleanField(default=False)
+    asr = models.BooleanField(default=False)
+    maghrib = models.BooleanField(default=False)
+    isha = models.BooleanField(default=False)
+    quran_reading = models.BooleanField(default=False)
+    dhikr = models.BooleanField(default=False)
+    gratitude = models.BooleanField(default=False)
+    reflection = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "date"], name="unique_user_worship_log_date")
+        ]
+
+    @property
+    def completed_count(self):
+        return sum(bool(getattr(self, field)) for field in (
+            "fajr", "dhuhr", "asr", "maghrib", "isha",
+            "quran_reading", "dhikr", "gratitude",
+        ))
+
+    @property
+    def progress_percent(self):
+        return round(self.completed_count / 8 * 100)
+
+    def __str__(self):
+        return f"{self.user} — {self.date}"
