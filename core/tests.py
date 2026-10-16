@@ -74,6 +74,27 @@ class AccountFlowTests(TestCase):
         response = self.client.get(reverse("dashboard"))
         self.assertRedirects(response, f"{reverse('login')}?next={reverse('dashboard')}")
 
+    def test_dashboard_shows_personal_progress_and_recent_bookmarks(self):
+        user = User.objects.create_user(username="dashboard_member", first_name="Amina", password="SecureTestPass_482!")
+        today = timezone.localdate()
+        DailyWorshipLog.objects.create(user=user, date=today, fajr=True, dhikr=True)
+        QuranBookmark.objects.create(
+            user=user, surah_number=1, ayah_number=1, surah_name="Al-Fatihah",
+            arabic_text="بِسْمِ اللَّهِ", translation_text="In the name of Allah."
+        )
+        QuranReadingProgress.objects.create(user=user, surah_number=1, ayah_number=1, surah_name="Al-Fatihah")
+        self.client.force_login(user)
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["today_completed"], 2)
+        self.assertEqual(response.context["today_percent"], 25)
+        self.assertEqual(response.context["active_days"], 1)
+        self.assertEqual(response.context["bookmark_count"], 1)
+        self.assertEqual(len(response.context["recent_bookmarks"]), 1)
+        self.assertContains(response, "Welcome,")
+        self.assertContains(response, "Your last seven days")
+        self.assertContains(response, "Recently saved verses")
+
     def test_login_with_valid_credentials(self):
         User.objects.create_user(username="member", password="SecureTestPass_482!")
         response = self.client.post(reverse("login"), {"username":"member","password":"SecureTestPass_482!"})
