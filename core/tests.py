@@ -178,7 +178,7 @@ class AskNoorTests(TestCase):
         response = self.client.get(reverse("ask_noor"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Knowledge with humility")
-        self.assertContains(response, "not a replacement for qualified scholarly guidance")
+        self.assertContains(response, "not as a replacement for qualified scholarly guidance")
 
     def test_ask_noor_handles_missing_api_configuration(self):
         with patch.dict("os.environ", {"OPENAI_API_KEY": ""}):
