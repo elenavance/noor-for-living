@@ -1,5 +1,6 @@
-const CACHE_NAME = "noor-for-living-v4";
-const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/prayer-times/", "/qibla/", "/quran/"];
+const CACHE_NAME = "noor-for-living-v5";
+const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/prayer-times/", "/qibla/"];
+const PRIVATE_PATHS = ["/accounts/dashboard/", "/my-bookmarks/", "/quran/"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
@@ -14,6 +15,10 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
   if (event.request.mode === "navigate") {
+    if (PRIVATE_PATHS.some(path => url.pathname.startsWith(path))) {
+      event.respondWith(fetch(event.request));
+      return;
+    }
     event.respondWith(fetch(event.request).then(response => {
       if (response.ok) { const copy=response.clone(); caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy)); }
       return response;
