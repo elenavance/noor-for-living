@@ -7,6 +7,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import SignUpForm
 from core.models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
@@ -15,6 +16,14 @@ from core.models import DailyWorshipLog, QuranBookmark, QuranReadingProgress
 def signup(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
+    if request.method == "GET":
+        next_url = request.GET.get("next", "")
+        if url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            request.session["signup_next"] = next_url
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
@@ -55,6 +64,13 @@ def signup(request):
             return redirect(
                 f"{reverse('quran_reader')}?surah={saved_verse[0]}#ayah-{saved_verse[1]}"
             )
+        next_url = request.session.pop("signup_next", "")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(next_url)
         return redirect("dashboard")
     return render(request, "accounts/signup.html", {"form": form})
 
