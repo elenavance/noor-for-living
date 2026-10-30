@@ -5,6 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from .forms import SignUpForm
@@ -17,8 +18,43 @@ def signup(request):
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
+        pending = request.session.get("pending_quran_bookmark")
+        saved_verse = None
+        if isinstance(pending, dict):
+            try:
+                surah_number = int(pending["surah_number"])
+                ayah_number = int(pending["ayah_number"])
+                surah_name = str(pending["surah_name"])[:120]
+                arabic_text = str(pending["arabic_text"])
+                translation_text = str(pending.get("translation_text", ""))
+                valid_reference = (
+                    1 <= surah_number <= 114
+                    and 1 <= ayah_number <= 286
+                    and bool(surah_name and arabic_text)
+                    and len(arabic_text) <= 4000
+                    and len(translation_text) <= 4000
+                )
+                if valid_reference:
+                    QuranBookmark.objects.get_or_create(
+                        user=user,
+                        surah_number=surah_number,
+                        ayah_number=ayah_number,
+                        defaults={
+                            "surah_name": surah_name,
+                            "arabic_text": arabic_text,
+                            "translation_text": translation_text,
+                        },
+                    )
+                    saved_verse = (surah_number, ayah_number)
+                    request.session.pop("pending_quran_bookmark", None)
+            except (KeyError, TypeError, ValueError):
+                request.session.pop("pending_quran_bookmark", None)
         login(request, user)
         messages.success(request, "Welcome to NOOR FOR LIVING. Your account is ready.")
+        if saved_verse:
+            return redirect(
+                f"{reverse('quran_reader')}?surah={saved_verse[0]}#ayah-{saved_verse[1]}"
+            )
         return redirect("dashboard")
     return render(request, "accounts/signup.html", {"form": form})
 
