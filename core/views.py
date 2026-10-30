@@ -1,4 +1,5 @@
 from django.conf import settings
+import calendar
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -8,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from .models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress, VipTrial
 from .ai_learning import LearningServiceError, ask_noor
 from django.core.cache import cache
 import os
@@ -35,6 +36,37 @@ def valid_quran_reference(surah_number, ayah_number):
 
 def home(request):
     return render(request, "home.html")
+
+
+def membership(request):
+    trial = VipTrial.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    return render(request, "membership.html", {"trial": trial})
+
+
+@login_required
+@require_POST
+def start_vip_trial(request):
+    now = timezone.now()
+    month = now.month % 12 + 1
+    year = now.year + (1 if now.month == 12 else 0)
+    day = min(now.day, calendar.monthrange(year, month)[1])
+    ends_at = now.replace(year=year, month=month, day=day)
+    trial, _created = VipTrial.objects.get_or_create(
+        user=request.user,
+        defaults={"started_at": now, "ends_at": ends_at},
+    )
+    return redirect("quran_plan" if trial.is_active else "membership")
+
+
+@login_required
+def quran_plan(request):
+    trial = VipTrial.objects.filter(user=request.user).first()
+    if not trial or not trial.is_active:
+        return redirect("membership")
+    return render(request, "quran_plan.html", {
+        "trial": trial,
+        "days": [{"day": day, "juz": day} for day in range(1, 31)],
+    })
 
 
 @require_POST
