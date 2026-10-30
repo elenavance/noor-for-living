@@ -414,3 +414,27 @@ class NoorVipTrialTests(TestCase):
         )
         self.client.force_login(self.user)
         self.assertRedirects(self.client.get(reverse("quran_plan")), reverse("membership"))
+
+
+class SafeSignupNextTests(TestCase):
+    def test_signup_returns_to_safe_membership_destination(self):
+        self.client.get("/accounts/signup/?next=/membership/")
+        response = self.client.post(reverse("signup"), {
+            "first_name": "Amina",
+            "username": "trial_member",
+            "email": "trial@example.com",
+            "password1": "SecureTestPass_482!",
+            "password2": "SecureTestPass_482!",
+        })
+        self.assertRedirects(response, reverse("membership"))
+
+    def test_signup_rejects_external_return_destination(self):
+        self.client.get("/accounts/signup/?next=https://evil.example/")
+        response = self.client.post(reverse("signup"), {
+            "first_name": "Amina",
+            "username": "safe_member",
+            "email": "safe@example.com",
+            "password1": "SecureTestPass_482!",
+            "password2": "SecureTestPass_482!",
+        })
+        self.assertRedirects(response, reverse("dashboard"))
