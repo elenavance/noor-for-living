@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -182,6 +183,36 @@ def ask_noor_view(request):
                 except LearningServiceError as exc:
                     context["error"] = str(exc)
     return render(request, "learning/ask_noor.html", context)
+
+
+
+@require_POST
+def prepare_guest_bookmark(request):
+    """Hold one intentionally selected public verse while the reader signs up."""
+    try:
+        surah_number = int(request.POST.get("surah_number", ""))
+        ayah_number = int(request.POST.get("ayah_number", ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid verse reference."}, status=400)
+
+    if not valid_quran_reference(surah_number, ayah_number):
+        return JsonResponse({"ok": False, "error": "That verse does not exist in the selected surah."}, status=400)
+
+    surah_name = request.POST.get("surah_name", "").strip()[:120]
+    arabic_text = request.POST.get("arabic_text", "").strip()
+    translation_text = request.POST.get("translation_text", "").strip()
+    if not surah_name or not arabic_text or len(arabic_text) > 4000 or len(translation_text) > 4000:
+        return JsonResponse({"ok": False, "error": "Verse details are missing or too long. Please reload the reader."}, status=400)
+
+    request.session["pending_quran_bookmark"] = {
+        "surah_number": surah_number,
+        "ayah_number": ayah_number,
+        "surah_name": surah_name,
+        "arabic_text": arabic_text,
+        "translation_text": translation_text,
+    }
+    request.session.set_expiry(3600)
+    return JsonResponse({"ok": True, "signup_url": reverse("signup")})
 
 
 def quran_reader(request):
