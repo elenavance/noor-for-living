@@ -14,4 +14,5 @@ urlpatterns = [
     path("my-bookmarks/", views.my_bookmarks, name="my_bookmarks"),
     path("my-bookmarks/<int:bookmark_id>/delete/", views.delete_bookmark, name="delete_bookmark"),
     path("quran/bookmark/toggle/", views.toggle_bookmark, name="toggle_bookmark"),
+    path("quran/bookmark/prepare/", views.prepare_guest_bookmark, name="prepare_guest_bookmark"),
 ]
