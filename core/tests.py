@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from unittest.mock import patch
-from core.models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from core.models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress, VipTrial
 
 
 class PublicPageTests(TestCase):
@@ -39,6 +39,7 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["name"], "NOOR FOR LIVING")
         self.assertEqual(response.json()["lang"], "en")
+        self.assertEqual(response.json()["icons"][0]["src"], "/static/images/noor-app-icon.svg")
 
     def test_service_worker_is_javascript(self):
         response = self.client.get(reverse("service_worker"))
@@ -307,3 +308,133 @@ class AskNoorServiceTests(TestCase):
         from core.ai_learning import LearningServiceError, ask_noor
         with self.assertRaises(LearningServiceError):
             ask_noor("A general question")
+
+
+class GuestQuranSaveAndShareTests(TestCase):
+    def test_quran_reader_shows_post_result_save_prompt_for_guest(self):
+        response = self.client.get(reverse("quran_reader"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="quran-save-prompt"')
+        self.assertContains(response, "continue reading without an account")
+        self.assertContains(response, "guestBookmarkUrl")
+        self.assertContains(response, "readerUrl")
+
+    def test_guest_can_stage_a_quran_verse_for_signup(self):
+        response = self.client.post(
+            reverse("prepare_guest_bookmark"),
+            {
+                "surah_number": "1",
+                "ayah_number": "1",
+                "surah_name": "Al-Fatihah",
+                "arabic_text": "بِسْمِ اللَّهِ",
+                "translation_text": "In the name of Allah.",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(self.client.session["pending_quran_bookmark"]["surah_number"], 1)
+
+    def test_guest_bookmark_staging_rejects_invalid_verse(self):
+        response = self.client.post(
+            reverse("prepare_guest_bookmark"),
+            {
+                "surah_number": "1",
+                "ayah_number": "8",
+                "surah_name": "Al-Fatihah",
+                "arabic_text": "text",
+                "translation_text": "text",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("pending_quran_bookmark", self.client.session)
+
+    def test_signup_saves_intentionally_selected_guest_verse(self):
+        session = self.client.session
+        session["pending_quran_bookmark"] = {
+            "surah_number": 1,
+            "ayah_number": 1,
+            "surah_name": "Al-Fatihah",
+            "arabic_text": "بِسْمِ اللَّهِ",
+            "translation_text": "In the name of Allah.",
+        }
+        session.save()
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "first_name": "Amina",
+                "username": "amina_quran_reader",
+                "email": "amina-quran@example.com",
+                "password1": "SecureTestPass_482!",
+                "password2": "SecureTestPass_482!",
+            },
+        )
+        self.assertEqual(response.url, f"{reverse('quran_reader')}?surah=1#ayah-1")
+        bookmark = QuranBookmark.objects.get(user__username="amina_quran_reader")
+        self.assertEqual(bookmark.surah_name, "Al-Fatihah")
+        self.assertEqual(bookmark.translation_text, "In the name of Allah.")
+        self.assertNotIn("pending_quran_bookmark", self.client.session)
+
+
+class NoorVipTrialTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="noor-vip-member", password="SecureTestPass_482!")
+
+    def test_membership_view_does_not_start_trial(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(reverse("membership")).status_code, 200)
+        self.assertFalse(VipTrial.objects.filter(user=self.user).exists())
+
+    def test_trial_starts_only_after_explicit_post_and_opens_plan(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("start_vip_trial"))
+        trial = VipTrial.objects.get(user=self.user)
+        self.assertRedirects(response, reverse("quran_plan"))
+        self.assertTrue(trial.is_active)
+        self.assertEqual(trial.ends_at.month, trial.started_at.month % 12 + 1)
+        self.assertContains(self.client.get(reverse("quran_plan")), "One Juz")
+
+    def test_trial_cannot_be_restarted_or_extended(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("start_vip_trial"))
+        expiry = VipTrial.objects.get(user=self.user).ends_at
+        self.client.post(reverse("start_vip_trial"))
+        self.assertEqual(VipTrial.objects.get(user=self.user).ends_at, expiry)
+
+    def test_guest_cannot_start_trial(self):
+        response = self.client.post(reverse("start_vip_trial"))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(VipTrial.objects.exists())
+
+    def test_expired_trial_cannot_open_plan(self):
+        from datetime import timedelta
+        VipTrial.objects.create(
+            user=self.user,
+            started_at=timezone.now() - timedelta(days=40),
+            ends_at=timezone.now() - timedelta(days=10),
+        )
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.get(reverse("quran_plan")), reverse("membership"))
+
+
+class SafeSignupNextTests(TestCase):
+    def test_signup_returns_to_safe_membership_destination(self):
+        self.client.get("/accounts/signup/?next=/membership/")
+        response = self.client.post(reverse("signup"), {
+            "first_name": "Amina",
+            "username": "trial_member",
+            "email": "trial@example.com",
+            "password1": "SecureTestPass_482!",
+            "password2": "SecureTestPass_482!",
+        })
+        self.assertRedirects(response, reverse("membership"))
+
+    def test_signup_rejects_external_return_destination(self):
+        self.client.get("/accounts/signup/?next=https://evil.example/")
+        response = self.client.post(reverse("signup"), {
+            "first_name": "Amina",
+            "username": "safe_member",
+            "email": "safe@example.com",
+            "password1": "SecureTestPass_482!",
+            "password2": "SecureTestPass_482!",
+        })
+        self.assertRedirects(response, reverse("dashboard"))

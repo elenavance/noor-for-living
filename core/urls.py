@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("membership/", views.membership, name="membership"),
+    path("membership/trial/start/", views.start_vip_trial, name="start_vip_trial"),
+    path("quran/reading-plan/", views.quran_plan, name="quran_plan"),
     path("rate-app/", views.submit_app_rating, name="submit_app_rating"),
     path("prayer-times/", views.prayer_times, name="prayer_times"),
     path("qibla/", views.qibla, name="qibla"),
@@ -14,4 +17,5 @@ urlpatterns = [
     path("my-bookmarks/", views.my_bookmarks, name="my_bookmarks"),
     path("my-bookmarks/<int:bookmark_id>/delete/", views.delete_bookmark, name="delete_bookmark"),
     path("quran/bookmark/toggle/", views.toggle_bookmark, name="toggle_bookmark"),
+    path("quran/bookmark/prepare/", views.prepare_guest_bookmark, name="prepare_guest_bookmark"),
 ]

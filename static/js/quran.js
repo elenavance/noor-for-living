@@ -2,6 +2,7 @@
   const API = "https://api.alquran.cloud/v1";
   const select = document.getElementById("surah-select"), status = document.getElementById("quran-status");
   const heading = document.getElementById("surah-heading"), title = document.getElementById("surah-title");
+  const savePrompt = document.getElementById("quran-save-prompt");
   const meta = document.getElementById("surah-meta"), translation = document.getElementById("surah-translation"), list = document.getElementById("ayah-list");
   const config = window.NOOR_QURAN_CONFIG || {}, saved = new Set(config.savedVerses || []);
   const csrf = document.querySelector("#csrf-form [name=csrfmiddlewaretoken]")?.value || "";
@@ -101,11 +102,35 @@
     button.type = "button";
     button.setAttribute("aria-pressed", saved.has(reference) ? "true" : "false");
     button.addEventListener("click", async () => {
+      button.disabled = true;
       if (!config.isAuthenticated) {
-        window.location.href = config.loginUrl + "?next=" + encodeURIComponent(window.location.pathname + window.location.search + "#ayah-" + ayah.numberInSurah);
+        try {
+          const body = new URLSearchParams({
+            surah_number: String(surah.number),
+            ayah_number: String(ayah.numberInSurah),
+            surah_name: surah.englishName,
+            arabic_text: ayah.text,
+            translation_text: translatedAyah.text
+          });
+          const response = await fetch(config.guestBookmarkUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+              "X-CSRFToken": csrf,
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            body,
+            credentials: "same-origin"
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok) throw new Error(result.error || "Could not prepare this verse for saving.");
+          window.location.href = result.signup_url;
+        } catch (error) {
+          setStatus(error.message || "Could not prepare this verse for saving.", true);
+          button.disabled = false;
+        }
         return;
       }
-      button.disabled = true;
       try {
         const body = new URLSearchParams({
           surah_number: String(surah.number),
@@ -139,6 +164,34 @@
     });
 
     top.appendChild(button);
+    const shareButton = make("button", "bookmark-button", "↗ Share");
+    shareButton.type = "button";
+    shareButton.setAttribute("aria-label", "Share " + surah.englishName + " verse " + ayah.numberInSurah);
+    shareButton.addEventListener("click", async () => {
+      const shareUrl = new URL(config.readerUrl || window.location.pathname, window.location.origin);
+      shareUrl.searchParams.set("surah", String(surah.number));
+      shareUrl.hash = "ayah-" + ayah.numberInSurah;
+      const referenceText = surah.englishName + " " + reference;
+      const shareData = {
+        title: referenceText + " — NOOR FOR LIVING",
+        text: ayah.text + "\n\n" + translatedAyah.text + "\n\n" + referenceText,
+        url: shareUrl.href
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+          setStatus("Verse shared.");
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareData.text + "\n" + shareData.url);
+          setStatus("Verse and link copied. You can paste them into a message.");
+        } else {
+          throw new Error("Sharing is not available in this browser.");
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") setStatus(error.message || "Could not share this verse.", true);
+      }
+    });
+    top.appendChild(shareButton);
     const arabic = make("p", "ayah-arabic");
     arabic.lang = "ar";
     arabic.dir = "rtl";
@@ -194,6 +247,7 @@
         if (en.ayahs[i] && transliteration.ayahs[i]) list.appendChild(renderAyah(ayah, ar, en.ayahs[i], transliteration.ayahs[i]));
       });
       setStatus("Showing " + ar.englishName + " with Arabic, pronunciation guide, English meaning, and male recitation.");
+      if (savePrompt) savePrompt.hidden = false;
       const url = new URL(window.location.href);
       url.searchParams.set("surah", String(number));
       window.history.replaceState({}, "", url);
