@@ -50,7 +50,7 @@ def submit_app_rating(request):
 
 
 def manifest(request):
-    manifest_data = {"id": "/", "name": "NOOR FOR LIVING", "short_name": "Noor", "description": "Your Daily Islamic Companion", "start_url": "/", "scope": "/", "display": "standalone", "background_color": "#f8f5ed", "theme_color": "#123c32", "lang": "en", "icons": []}
+    manifest_data = {"id": "/", "name": "NOOR FOR LIVING", "short_name": "Noor", "description": "Your Daily Islamic Companion", "start_url": "/", "scope": "/", "display": "standalone", "background_color": "#f8f5ed", "theme_color": "#123c32", "lang": "en", "icons": [{"src": "/static/images/noor-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}]}
     return JsonResponse(manifest_data, content_type="application/manifest+json")
 
 
