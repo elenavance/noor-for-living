@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from unittest.mock import patch
-from core.models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress
+from core.models import AppRating, DailyWorshipLog, QuranBookmark, QuranReadingProgress, VipTrial
 
 
 class PublicPageTests(TestCase):
@@ -373,3 +373,44 @@ class GuestQuranSaveAndShareTests(TestCase):
         self.assertEqual(bookmark.surah_name, "Al-Fatihah")
         self.assertEqual(bookmark.translation_text, "In the name of Allah.")
         self.assertNotIn("pending_quran_bookmark", self.client.session)
+
+
+class NoorVipTrialTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="noor-vip-member", password="SecureTestPass_482!")
+
+    def test_membership_view_does_not_start_trial(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(reverse("membership")).status_code, 200)
+        self.assertFalse(VipTrial.objects.filter(user=self.user).exists())
+
+    def test_trial_starts_only_after_explicit_post_and_opens_plan(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("start_vip_trial"))
+        trial = VipTrial.objects.get(user=self.user)
+        self.assertRedirects(response, reverse("quran_plan"))
+        self.assertTrue(trial.is_active)
+        self.assertEqual(trial.ends_at.month, trial.started_at.month % 12 + 1)
+        self.assertContains(self.client.get(reverse("quran_plan")), "One Juz")
+
+    def test_trial_cannot_be_restarted_or_extended(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("start_vip_trial"))
+        expiry = VipTrial.objects.get(user=self.user).ends_at
+        self.client.post(reverse("start_vip_trial"))
+        self.assertEqual(VipTrial.objects.get(user=self.user).ends_at, expiry)
+
+    def test_guest_cannot_start_trial(self):
+        response = self.client.post(reverse("start_vip_trial"))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(VipTrial.objects.exists())
+
+    def test_expired_trial_cannot_open_plan(self):
+        from datetime import timedelta
+        VipTrial.objects.create(
+            user=self.user,
+            started_at=timezone.now() - timedelta(days=40),
+            ends_at=timezone.now() - timedelta(days=10),
+        )
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.get(reverse("quran_plan")), reverse("membership"))
