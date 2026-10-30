@@ -39,6 +39,7 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["name"], "NOOR FOR LIVING")
         self.assertEqual(response.json()["lang"], "en")
+        self.assertEqual(response.json()["icons"][0]["src"], "/static/images/noor-app-icon.svg")
 
     def test_service_worker_is_javascript(self):
         response = self.client.get(reverse("service_worker"))
