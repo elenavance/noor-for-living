@@ -308,3 +308,68 @@ class AskNoorServiceTests(TestCase):
         from core.ai_learning import LearningServiceError, ask_noor
         with self.assertRaises(LearningServiceError):
             ask_noor("A general question")
+
+
+class GuestQuranSaveAndShareTests(TestCase):
+    def test_quran_reader_shows_post_result_save_prompt_for_guest(self):
+        response = self.client.get(reverse("quran_reader"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="quran-save-prompt"')
+        self.assertContains(response, "continue reading without an account")
+        self.assertContains(response, "guestBookmarkUrl")
+        self.assertContains(response, "readerUrl")
+
+    def test_guest_can_stage_a_quran_verse_for_signup(self):
+        response = self.client.post(
+            reverse("prepare_guest_bookmark"),
+            {
+                "surah_number": "1",
+                "ayah_number": "1",
+                "surah_name": "Al-Fatihah",
+                "arabic_text": "بِسْمِ اللَّهِ",
+                "translation_text": "In the name of Allah.",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(self.client.session["pending_quran_bookmark"]["surah_number"], 1)
+
+    def test_guest_bookmark_staging_rejects_invalid_verse(self):
+        response = self.client.post(
+            reverse("prepare_guest_bookmark"),
+            {
+                "surah_number": "1",
+                "ayah_number": "8",
+                "surah_name": "Al-Fatihah",
+                "arabic_text": "text",
+                "translation_text": "text",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("pending_quran_bookmark", self.client.session)
+
+    def test_signup_saves_intentionally_selected_guest_verse(self):
+        session = self.client.session
+        session["pending_quran_bookmark"] = {
+            "surah_number": 1,
+            "ayah_number": 1,
+            "surah_name": "Al-Fatihah",
+            "arabic_text": "بِسْمِ اللَّهِ",
+            "translation_text": "In the name of Allah.",
+        }
+        session.save()
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "first_name": "Amina",
+                "username": "amina_quran_reader",
+                "email": "amina-quran@example.com",
+                "password1": "SecureTestPass_482!",
+                "password2": "SecureTestPass_482!",
+            },
+        )
+        self.assertEqual(response.url, f"{reverse('quran_reader')}?surah=1#ayah-1")
+        bookmark = QuranBookmark.objects.get(user__username="amina_quran_reader")
+        self.assertEqual(bookmark.surah_name, "Al-Fatihah")
+        self.assertEqual(bookmark.translation_text, "In the name of Allah.")
+        self.assertNotIn("pending_quran_bookmark", self.client.session)
