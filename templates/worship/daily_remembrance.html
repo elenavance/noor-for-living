@@ -2,22 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123c32">
-<meta name="description" content="A thoughtful collection of Quranic duas and dhikr with English meanings and references.">
+<meta name="description" content="A thoughtful collection of Quranic duas and dhikr with English and Indonesian meanings and references.">
 <link rel="manifest" href="{% url 'manifest' %}"><link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/luxury.css"><link rel="stylesheet" href="/static/css/worship.css"><link rel="stylesheet" href="/static/css/remembrance.css">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <title>Daily Duas &amp; Dhikr — NOOR FOR LIVING</title></head>
 <body class="worship-page remembrance-page" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
 <header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><nav class="top-nav" aria-label="Main navigation"><a href="{% url 'prayer_times' %}">Prayer times</a><a href="{% url 'quran_reader' %}">Quran</a><a href="{% url 'dashboard' %}">My Journey</a></nav></header>
 <main class="worship-main remembrance-main"><a class="back-link" href="{% url 'dashboard' %}">← My Journey</a>
-<section class="worship-heading"><p class="eyebrow">REMEMBER · REFLECT · RETURN</p><h1>Words for <i>the heart.</i></h1><p>A small, carefully referenced collection of Quranic supplications and well-known dhikr. Read the meaning, reflect on the source, and take your time.</p></section>
+<section class="worship-heading"><p class="eyebrow">REMEMBER · REFLECT · RETURN</p><h1>Words for <i>the heart.</i></h1><p>A carefully referenced collection of authentic supplications and well-known dhikr, with English and Indonesian meanings. Read the meaning, reflect on the source, and take your time.</p></section>
 <section class="remembrance-tools" aria-label="Search and filter remembrances"><label class="search-field"><span>Search the collection</span><input id="remembrance-search" type="search" placeholder="Search words, meanings, or sources…" autocomplete="off"></label>
 <div class="filter-row" id="remembrance-filters"><button type="button" class="filter-chip is-active" data-filter="all" aria-pressed="true">All</button>{% for category in categories %}<button type="button" class="filter-chip" data-filter="{{ category }}" aria-pressed="false">{{ category }}</button>{% endfor %}</div>
 <p class="result-count" id="remembrance-count" aria-live="polite">{{ remembrances|length }} readings</p></section>
 <section class="remembrance-grid" id="remembrance-grid">
-{% for item in remembrances %}<article class="remembrance-card reveal" data-category="{{ item.category }}" data-search="{{ item.title|lower }} {{ item.category|lower }} {{ item.transliteration|lower }} {{ item.translation|lower }} {{ item.source|lower }}">
+{% for item in remembrances %}<article class="remembrance-card reveal" data-category="{{ item.category }}" data-search="{{ item.title|lower }} {{ item.category|lower }} {{ item.transliteration|lower }} {{ item.translation|lower }} {{ item.translation_id|lower }} {{ item.source|lower }}">
 <div class="remembrance-card-top"><span class="remembrance-category">{{ item.category }}</span><span class="remembrance-kind">{% if item.kind == "dhikr" %}DHIKR{% else %}DUA{% endif %}</span></div>
 <h2>{{ item.title }}</h2><p class="remembrance-arabic" lang="ar" dir="rtl" translate="no">{{ item.arabic }}</p>
-<p class="remembrance-transliteration">{{ item.transliteration }}</p><p class="remembrance-translation">{{ item.translation }}</p><p class="remembrance-note">{{ item.note }}</p>
+<p class="remembrance-transliteration">{{ item.transliteration }}</p><p class="remembrance-translation">{{ item.translation }}</p>{% if item.translation_id %}<p class="remembrance-translation remembrance-translation-id" lang="id">{{ item.translation_id }}</p>{% endif %}<p class="remembrance-note">{{ item.note }}</p>
 <div class="remembrance-source"><span>REFERENCE</span><strong>{{ item.source }}</strong></div>
 <div class="remembrance-actions"><button type="button" class="remembrance-copy" data-copy="{{ item.arabic|escape }}">Copy Arabic</button><button type="button" class="remembrance-copy" data-copy="{{ item.translation|escape }}">Copy meaning</button>
 {% if item.kind == "dhikr" %}<div class="dhikr-counter" data-counter="{{ item.id }}"><button type="button" class="counter-minus" aria-label="Decrease count">−</button><output>0</output><button type="button" class="counter-plus">Count +</button><button type="button" class="counter-reset">Reset</button></div>{% endif %}</div></article>{% endfor %}
