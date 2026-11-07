@@ -1,6 +1,8 @@
 (() => {
   const KAABA = { lat: 21.422487, lon: 39.826206 };
   const prayerButton = document.getElementById("locate-button");
+  const cityButton = document.getElementById("city-button");
+  const cityInput = document.getElementById("city-input");
   const qiblaButton = document.getElementById("qibla-locate-button");
   const prayerStatus = document.getElementById("prayer-status");
   const qiblaStatus = document.getElementById("qibla-status");
@@ -12,11 +14,21 @@
   const cardinalLabel = document.getElementById("qibla-cardinal");
   const distanceLabel = document.getElementById("qibla-distance");
   const needle = document.getElementById("qibla-needle");
+  const nextPrayerBanner = document.getElementById("next-prayer-banner");
+  const nextPrayerName = document.getElementById("next-prayer-name");
+  const nextPrayerTime = document.getElementById("next-prayer-time");
+  const nextPrayerCountdown = document.getElementById("next-prayer-countdown");
   const prayerNames = [
+    ["Imsak", "Start of fasting"],
     ["Fajr", "Before sunrise"], ["Sunrise", "Sunrise"],
     ["Dhuhr", "Midday prayer"], ["Asr", "Afternoon prayer"],
     ["Maghrib", "After sunset"], ["Isha", "Night prayer"]
   ];
+  const PRAYER_ORDER = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+
+  let countdownTimer = null;
+  let todayTimings = null;
+  let currentLocation = null;
 
   function setStatus(element, message, isError = false) {
     if (!element) return;
@@ -29,7 +41,7 @@
     catch (_) { return null; }
   }
   function saveLocation(location) {
-    const value = {lat: location.lat, lon: location.lon, accuracy: location.accuracy || 0, savedAt: Date.now()};
+    const value = {lat: location.lat, lon: location.lon, accuracy: location.accuracy || 0, label: location.label || "", savedAt: Date.now()};
     localStorage.setItem("noor.savedLocation", JSON.stringify(value));
     return value;
   }
@@ -38,7 +50,7 @@
     if (cached) return Promise.resolve(cached);
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error("This browser does not support location services."));
+        reject(new Error("This browser does not support location services. You can search for your city instead."));
         return;
       }
       navigator.geolocation.getCurrentPosition(
@@ -49,14 +61,31 @@
         })),
         (error) => {
           const messages = {
-            1: "Location permission was denied. Enable it in your browser settings and try again.",
-            2: "Your location could not be determined. Check your device location settings.",
-            3: "Location request timed out. Please try again."
+            1: "Location permission was denied. Enable it in your browser settings, or search for your city below.",
+            2: "Your location could not be determined. Check your device settings, or search for your city below.",
+            3: "Location request timed out. Please try again, or search for your city below."
           };
-          reject(new Error(messages[error.code] || "Unable to access your location."));
+          reject(new Error(messages[error.code] || "Unable to access your location. You can search for your city below."));
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
       );
+    });
+  }
+
+  async function useManualCity(query) {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=id,en&q=" + encodeURIComponent(query);
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("The place search service is temporarily unavailable. Please try again.");
+    const results = await response.json();
+    if (!Array.isArray(results) || !results.length) {
+      throw new Error("That place was not found. Try a nearby city name, e.g. \"Jakarta\" or \"Surabaya\".");
+    }
+    const place = results[0];
+    return saveLocation({
+      lat: Number(place.lat),
+      lon: Number(place.lon),
+      accuracy: 0,
+      label: place.display_name.split(",").slice(0, 3).join(",")
     });
   }
 
@@ -106,7 +135,7 @@
       reminderTimers.push(setTimeout(async () => {
         if (soundEnabled()) await playAdhan(name);
         if (notificationsEnabled() && "Notification" in window && Notification.permission === "granted") {
-          try { const registration = await navigator.serviceWorker.ready; await registration.showNotification("NOOR FOR LIVING · " + name, {body:"It is time for " + name + " prayer.",tag:"noor-prayer-" + name.toLowerCase()}); } catch (_) {}
+          try { const registration = await navigator.serviceWorker.ready; await registration.showNotification("NOOR FOR LIVING \u00B7 " + name, {body:"It is time for " + name + " prayer.",tag:"noor-prayer-" + name.toLowerCase()}); } catch (_) {}
         }
       }, delay));
     });
@@ -119,10 +148,11 @@
       const time = timings[name];
       const card = document.createElement("article");
       card.className = "prayer-card";
+      card.dataset.prayer = name;
       const title = document.createElement("span");
       title.textContent = name.toUpperCase();
       const value = document.createElement("strong");
-      value.textContent = typeof time === "string" ? time.split(" ")[0] : "—:—";
+      value.textContent = typeof time === "string" ? time.split(" ")[0] : "\u2014:\u2014";
       const caption = document.createElement("small");
       caption.textContent = hint;
       card.append(title, value, caption);
@@ -130,10 +160,57 @@
     });
   }
 
+  function timeToday(timeString) {
+    const match = String(timeString || "").match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return null;
+    const date = new Date();
+    date.setHours(Number(match[1]), Number(match[2]), 0, 0);
+    return date;
+  }
+
+  function startCountdown(timings) {
+    if (!nextPrayerBanner) return;
+    if (countdownTimer) window.clearInterval(countdownTimer);
+    const update = () => {
+      const now = new Date();
+      let next = null;
+      for (const name of PRAYER_ORDER) {
+        const at = timeToday(timings[name]);
+        if (at && at.getTime() > now.getTime()) { next = { name, at }; break; }
+      }
+      prayerGrid.querySelectorAll(".prayer-card.is-next").forEach(c => c.classList.remove("is-next"));
+      if (!next) {
+        nextPrayerName.textContent = "Completed";
+        nextPrayerTime.textContent = "";
+        nextPrayerCountdown.textContent = "All five prayers for today have passed. Alhamdulillah.";
+        window.clearInterval(countdownTimer);
+        return;
+      }
+      const nextCard = prayerGrid.querySelector('[data-prayer="' + next.name + '"]');
+      if (nextCard) nextCard.classList.add("is-next");
+      nextPrayerName.textContent = next.name;
+      nextPrayerTime.textContent = String(timings[next.name]).split(" ")[0];
+      const remaining = Math.max(0, next.at.getTime() - now.getTime());
+      const hours = Math.floor(remaining / 3600000);
+      const minutes = Math.floor((remaining % 3600000) / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      nextPrayerCountdown.textContent = "in " + String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+      if (remaining <= 0 && currentLocation) {
+        window.clearInterval(countdownTimer);
+        window.setTimeout(() => loadPrayerTimes(currentLocation).catch(() => {}), 30000);
+      }
+    };
+    update();
+    countdownTimer = window.setInterval(update, 1000);
+  }
+
   async function loadPrayerTimes(location) {
-    setStatus(prayerStatus, "Calculating today's schedule…");
-    if (locationTitle) locationTitle.textContent = "Location found";
-    if (locationDetail) locationDetail.textContent = location.lat.toFixed(4) + ", " + location.lon.toFixed(4) + " · Approx. " + Math.round(location.accuracy) + " m accuracy";
+    currentLocation = location;
+    setStatus(prayerStatus, "Calculating today's schedule\u2026");
+    if (locationTitle) locationTitle.textContent = location.label || "Location found";
+    if (locationDetail) locationDetail.textContent = location.label
+      ? location.lat.toFixed(4) + ", " + location.lon.toFixed(4)
+      : location.lat.toFixed(4) + ", " + location.lon.toFixed(4) + " \u00B7 Approx. " + Math.round(location.accuracy || 0) + " m accuracy";
     const date = new Date();
     if (dateLabel) dateLabel.textContent = new Intl.DateTimeFormat("en", { dateStyle: "full" }).format(date);
     const url = new URL("https://api.aladhan.com/v1/timings/" + formatDateForApi(date));
@@ -146,10 +223,12 @@
     if (payload.code !== 200 || !payload.data || !payload.data.timings) {
       throw new Error("Prayer times could not be calculated for this location.");
     }
-    showPrayerTimes(payload.data.timings);
-    schedulePrayerReminders(payload.data.timings);
+    todayTimings = payload.data.timings;
+    showPrayerTimes(todayTimings);
+    startCountdown(todayTimings);
+    schedulePrayerReminders(todayTimings);
     const method = payload.data.meta && payload.data.meta.method && payload.data.meta.method.name;
-    setStatus(prayerStatus, "Schedule loaded" + (method ? " · " + method : "") + ". Please confirm locally before relying on it.");
+    setStatus(prayerStatus, "Schedule loaded" + (method ? " \u00B7 " + method : "") + ". Please confirm locally before relying on it.");
   }
 
   function qiblaData(location) {
@@ -174,10 +253,10 @@
   }
 
   async function loadQibla(location) {
-    setStatus(qiblaStatus, "Calculating Qibla direction…");
+    setStatus(qiblaStatus, "Calculating Qibla direction\u2026");
     const result = qiblaData(location);
     if (needle) needle.style.transform = "translate(-50%, -50%) rotate(" + result.bearing + "deg)";
-    if (bearingLabel) bearingLabel.textContent = result.bearing.toFixed(1) + "°";
+    if (bearingLabel) bearingLabel.textContent = result.bearing.toFixed(1) + "\u00B0";
     if (cardinalLabel) cardinalLabel.textContent = cardinalDirection(result.bearing) + " from true north";
     if (distanceLabel) distanceLabel.textContent = Math.round(result.distance).toLocaleString("en") + " km to the Kaaba";
     setStatus(qiblaStatus, "Direction calculated from your coordinates. This is a geographic bearing, not a live magnetic compass.");
@@ -210,7 +289,7 @@
     });
   }
   if (testAdhanButton) testAdhanButton.addEventListener("click", () => { playAdhan("Dhuhr", true); });
-  if (soundEnabled() || notificationsEnabled()) setAlertStatus(soundEnabled() && notificationsEnabled() ? "Adhan sound and notifications are enabled." : soundEnabled() ? "Adhan sound is enabled." : "Prayer notifications are enabled.");
+  if (soundEnabled() || notificationsEnabled()) setAlertStatus(soundEnabled() && notificationsEnabled() ? "Adhan sound and notifications are both enabled." : soundEnabled() ? "Adhan sound is enabled." : "Prayer notifications are enabled.");
 
   if (prayerButton) prayerButton.addEventListener("click", async () => {
     prayerButton.disabled = true;
@@ -224,6 +303,24 @@
       prayerButton.classList.remove("is-loading");
     }
   });
+
+  async function submitCity() {
+    const query = (cityInput.value || "").trim();
+    if (query.length < 2) { setStatus(prayerStatus, "Type a city or town name first, e.g. \"Bandung\".", true); return; }
+    cityButton.disabled = true;
+    setStatus(prayerStatus, "Searching for \"" + query + "\"\u2026");
+    try {
+      await loadPrayerTimes(await useManualCity(query));
+    } catch (error) {
+      setStatus(prayerStatus, error.message || "Could not use that place. Please try again.", true);
+    } finally {
+      cityButton.disabled = false;
+    }
+  }
+  if (cityButton && cityInput) {
+    cityButton.addEventListener("click", submitCity);
+    cityInput.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); submitCity(); } });
+  }
 
   const savedLocation = readSavedLocation();
   if (savedLocation && prayerGrid) loadPrayerTimes(savedLocation).catch(error => setStatus(prayerStatus, error.message, true));

@@ -11,6 +11,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .next-prayer-banner{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 16px;padding:14px 18px;border-radius:12px;background:#123c32;color:#f8f5ed;}
+    .next-prayer-banner .np-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;}
+    .next-prayer-banner strong{font-size:20px;font-weight:700;}
+    .next-prayer-banner .np-time{font-size:16px;color:#d9b64f;}
+    .next-prayer-banner .np-count{margin-left:auto;font-variant-numeric:tabular-nums;font-size:15px;opacity:.9;}
+    .prayer-card.is-next{border:2px solid #b98d2f;box-shadow:0 4px 18px rgba(185,141,47,.25);}
+    .manual-city{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+    .manual-city input{flex:1;min-width:180px;padding:10px 12px;border:1px solid #d9cfae;border-radius:8px;font-size:15px;}
+    .manual-city button{padding:10px 16px;border:none;border-radius:8px;background:#123c32;color:#f8f5ed;font-size:15px;cursor:pointer;}
+    .manual-city button[disabled]{opacity:.5;cursor:default;}
+  </style>
   <title>Prayer Times — NOOR FOR LIVING</title>
 </head>
 <body class="worship-page" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}">
@@ -28,6 +40,10 @@
     <section class="location-panel">
       <div><span class="panel-icon">⌖</span><div><p class="eyebrow">YOUR LOCATION</p><h2 id="location-title">Checking saved location…</h2><p id="location-detail">Your saved location is reused automatically. Set it once, then refresh only if you move.</p></div></div>
       <div class="location-actions"><button class="button button-gold" id="locate-button" type="button">Set / refresh location <span>↗</span></button></div>
+      <div class="manual-city">
+        <input id="city-input" type="text" placeholder="Or type your city, e.g. Jakarta, Bandung, Surabaya…" autocomplete="off">
+        <button id="city-button" type="button">Use this city</button>
+      </div>
     </section>
     <section class="prayer-alert-settings" aria-labelledby="prayer-alert-title">
       <div><h2 id="prayer-alert-title">Prayer alerts</h2><p>Choose how you'd like NOOR to remind you at each prayer time. Sound and notifications can be controlled independently.</p></div>
@@ -41,7 +57,9 @@
     <p class="status-message" id="prayer-status" role="status" aria-live="polite">Your location is only requested when you tap the button.</p>
     <section class="prayer-panel">
       <div class="prayer-panel-heading"><div><p class="eyebrow">TODAY'S SCHEDULE</p><h2 id="prayer-date">Prayer times</h2></div><span class="calculation-note">Calculation: KEMENAG Indonesia</span></div>
+      <div class="next-prayer-banner" id="next-prayer-banner" hidden><span class="np-label">Next prayer</span><strong id="next-prayer-name">—</strong><span class="np-time" id="next-prayer-time"></span><span class="np-count" id="next-prayer-countdown"></span></div>
       <div class="prayer-grid" id="prayer-grid">
+        <article class="prayer-card"><span>IMSAK</span><strong>—:—</strong><small>Start of fasting</small></article>
         <article class="prayer-card"><span>FAJR</span><strong>—:—</strong><small>Before sunrise</small></article>
         <article class="prayer-card"><span>SUNRISE</span><strong>—:—</strong><small>Sunrise</small></article>
         <article class="prayer-card"><span>DHUHR</span><strong>—:—</strong><small>Midday prayer</small></article>
@@ -55,5 +73,7 @@
   </main>
   <nav class="bottom-nav" aria-label="Quick navigation"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item active" href="{% url 'prayer_times' %}"><span>◔</span><small>Prayer</small></a><a class="nav-item" href="{% url 'qibla' %}"><span>۞</span><small>Qibla</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>▤</span><small>Journey</small></a></nav>
   <script src="/static/js/worship.js" defer></script>
-<script src="/static/js/app.js" defer></script></body>
+  <script src="/static/js/app.js" defer></script>
+  <script>document.getElementById('next-prayer-banner').hidden=false;</script>
+</body>
 </html>
