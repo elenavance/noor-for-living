@@ -192,7 +192,7 @@
     style.textContent = [
       ".lang-switcher{display:inline-flex;align-items:center;gap:2px;margin-left:auto;padding:2px;border:1px solid rgba(176,141,58,.45);border-radius:999px;background:rgba(255,252,244,.85)}",
       ".lang-switcher .lang-btn{border:0;background:transparent;padding:4px 10px;border-radius:999px;font-family:inherit;font-weight:600;font-size:12px;line-height:1.2;letter-spacing:.04em;color:#6b5b3e;cursor:pointer;transition:background .2s ease,color .2s ease}",
-      ".lang-switcher .lang-btn:hover{color:#3d3article02a}",
+      ".lang-switcher .lang-btn:hover{color:#3d2f16}",
       ".lang-switcher .lang-btn.is-active{background:linear-gradient(135deg,#b08d3a,#d4af37);color:#fff;box-shadow:0 1px 4px rgba(176,141,58,.35)}"
     ].join("");
     document.head.appendChild(style);
@@ -236,7 +236,7 @@
       if (mutation.type === "characterData") pending.add(mutation.target);
       mutation.addedNodes.forEach(node => pending.add(node));
     });
-    if (!scheduled && pending.size) { scheduled = true; requestAnimationFrame(flush); };
+    if (!scheduled && pending.size) { scheduled = true; requestAnimationFrame(flush); }
   });
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 })();
