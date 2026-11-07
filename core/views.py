@@ -209,6 +209,10 @@ def quran_reader(request):
     })
 
 
+def mushaf(request):
+    return render(request, "quran/mushaf.html")
+
+
 @login_required
 @require_POST
 def save_quran_progress(request):
