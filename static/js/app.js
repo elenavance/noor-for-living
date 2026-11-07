@@ -74,3 +74,169 @@
     veil.querySelector(".noor-welcome-start").addEventListener("click", close);
   }
 })();
+
+/* ============================================================
+   NOOR i18n — English / Indonesian interface language.
+   Translates UI chrome only; Quran, dua and Arabic content
+   (lang="ar" / translate="no") is never touched.
+   ============================================================ */
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "noor.lang";
+  const DICT = {
+    /* Navigation */
+    "Home": "Beranda",
+    "Prayer times": "Waktu Sholat",
+    "Qibla": "Kiblat",
+    "Quran": "Al-Qur'an",
+    "Duas & dhikr": "Doa & Dzikir",
+    "Islamic calendar": "Kalender Islam",
+    "My Journey": "Perjalananku",
+    "Ask Noor": "Tanya Noor",
+    "Saved verses": "Ayat Tersimpan",
+    "Log in": "Masuk",
+    /* Welcome guide */
+    "WELCOME TO YOUR DAILY COMPANION": "SELAMAT DATANG DI TEMAN HARIANMU",
+    "Let me show you around. Find prayer times, face the Qibla, read and listen to the Quran, save meaningful verses, and build gentle daily habits.":
+      "Mari berkeliling sebentar. Temukan waktu sholat, arah Kiblat, baca dan dengarkan Al-Qur'an, simpan ayat yang bermakna, dan bangun kebiasaan harian yang baik.",
+    "Worship": "Ibadah",
+    "Learn": "Belajar",
+    "Reflect": "Renungkan",
+    "Begin my journey": "Mulai perjalananku",
+    "You can explore any feature from the navigation above.": "Kamu bisa menjelajahi semua fitur lewat navigasi di atas.",
+    /* Prayer times */
+    "Start of fasting": "Awal puasa",
+    "Fajr": "Subuh",
+    "Sunrise": "Terbit",
+    "Dhuhr": "Dzuhur",
+    "Asr": "Ashar",
+    "Isha": "Isya",
+    "Next prayer": "Sholat berikutnya",
+    "All five prayers for today have passed. Alhamdulillah.": "Kelima waktu sholat hari ini telah lewat. Alhamdulillah.",
+    /* Quran reader & mushaf */
+    "Open the mushaf": "Buka Mushaf",
+    "Play whole surah": "Putar seluruh surah",
+    "Pause": "Jeda",
+    "Resume": "Lanjutkan",
+    "Stop": "Berhenti",
+    "Repeat verse": "Ulangi ayat",
+    "Listen": "Dengarkan",
+    "Translation": "Terjemahan",
+    "Transliteration": "Transliterasi",
+    /* Common */
+    "Search": "Cari",
+    "Save": "Simpan",
+    "Cancel": "Batal",
+    "Loading\u2026": "Memuat\u2026"
+  };
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const browserLang = (navigator.language || "").toLowerCase();
+  const lang = (stored === "id" || stored === "en") ? stored : (browserLang.startsWith("id") ? "id" : "en");
+  document.documentElement.lang = lang;
+
+  const translateString = value => {
+    if (!value) return value;
+    const core = value.replace(/^\s+|\s+$/g, "");
+    let translated = DICT[core];
+    if (!translated && core.startsWith("Hello, ")) translated = "Halo, " + core.slice(7);
+    if (!translated || translated === core) return value;
+    const lead = value.match(/^\s*/)[0];
+    const trail = value.match(/\s*$/)[0];
+    return lead + translated + trail;
+  };
+
+  const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "CODE", "PRE", "OPTION"]);
+  const isProtected = el => !el || !!el.closest('[lang="ar"], [translate="no"], .lang-switcher');
+
+  const translateTextNode = node => {
+    const parent = node.parentElement;
+    if (!parent || SKIP_TAGS.has(parent.tagName) || isProtected(parent)) return;
+    const next = translateString(node.nodeValue);
+    if (next !== node.nodeValue) node.nodeValue = next;
+  };
+
+  const translatePlaceholders = root => {
+    if (!root.querySelectorAll) return;
+    root.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el => {
+      if (isProtected(el)) return;
+      const current = el.getAttribute("placeholder");
+      const next = translateString(current);
+      if (next && next !== current) el.setAttribute("placeholder", next);
+    });
+  };
+
+  const translateTree = root => {
+    if (!root) return;
+    if (root.nodeType === Node.TEXT_NODE) { translateTextNode(root); return; }
+    if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+    if (root.nodeType === Node.ELEMENT_NODE && isProtected(root)) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent || SKIP_TAGS.has(parent.tagName) || isProtected(parent)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(translateTextNode);
+    translatePlaceholders(root);
+  };
+
+  /* --- Language switcher pill in the topbar (always visible) --- */
+  const topbar = document.querySelector(".topbar");
+  if (topbar && !topbar.querySelector(".lang-switcher")) {
+    const style = document.createElement("style");
+    style.textContent = [
+      ".lang-switcher{display:inline-flex;align-items:center;gap:2px;margin-left:auto;padding:2px;border:1px solid rgba(176,141,58,.45);border-radius:999px;background:rgba(255,252,244,.85)}",
+      ".lang-switcher .lang-btn{border:0;background:transparent;padding:4px 10px;border-radius:999px;font-family:inherit;font-weight:600;font-size:12px;line-height:1.2;letter-spacing:.04em;color:#6b5b3e;cursor:pointer;transition:background .2s ease,color .2s ease}",
+      ".lang-switcher .lang-btn:hover{color:#3d3article02a}",
+      ".lang-switcher .lang-btn.is-active{background:linear-gradient(135deg,#b08d3a,#d4af37);color:#fff;box-shadow:0 1px 4px rgba(176,141,58,.35)}"
+    ].join("");
+    document.head.appendChild(style);
+    const wrap = document.createElement("div");
+    wrap.className = "lang-switcher";
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", "Interface language / Bahasa antarmuka");
+    [["en", "EN"], ["id", "ID"]].forEach(([code, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.className = "lang-btn" + (lang === code ? " is-active" : "");
+      btn.setAttribute("aria-pressed", String(lang === code));
+      btn.addEventListener("click", () => {
+        if (lang === code) return;
+        localStorage.setItem(STORAGE_KEY, code);
+        window.location.reload();
+      });
+      wrap.appendChild(btn);
+    });
+    topbar.appendChild(wrap);
+  }
+
+  /* --- Apply Indonesian translation (English is the source, no work needed) --- */
+  if (lang !== "id") return;
+
+  translateTree(document.body);
+  if (document.title) {
+    document.title = document.title.split("\u00b7").map(part => translateString(part)).join("\u00b7");
+  }
+
+  const pending = new Set();
+  let scheduled = false;
+  const flush = () => {
+    scheduled = false;
+    pending.forEach(node => { if (node.isConnected !== false) translateTree(node); });
+    pending.clear();
+  };
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.type === "characterData") pending.add(mutation.target);
+      mutation.addedNodes.forEach(node => pending.add(node));
+    });
+    if (!scheduled && pending.size) { scheduled = true; requestAnimationFrame(flush); };
+  });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+})();
