@@ -9,6 +9,7 @@ urlpatterns = [
     path("daily-remembrance/", views.daily_remembrance, name="daily_remembrance"),
     path("my-journey/", views.worship_tracker, name="worship_tracker"),
     path("quran/", views.quran_reader, name="quran_reader"),
+    path("quran/mushaf/", views.mushaf, name="mushaf"),
     path("ask-noor/", views.ask_noor_view, name="ask_noor"),
     path("quran/progress/", views.save_quran_progress, name="save_quran_progress"),
     path("my-bookmarks/", views.my_bookmarks, name="my_bookmarks"),
