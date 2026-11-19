@@ -258,7 +258,12 @@ def save_quran_progress(request):
 
 @login_required
 def my_bookmarks(request):
-    return render(request, "quran/bookmarks.html", {"bookmarks": request.user.quran_bookmarks.all()})
+    # Guest bookmarks live only in the visitor browser localStorage.
+    bookmarks = request.user.quran_bookmarks.all() if request.user.is_authenticated else []
+    return render(request, "quran/bookmarks.html", {
+        "bookmarks": bookmarks,
+        "is_guest": not request.user.is_authenticated,
+    })
 
 
 @login_required

@@ -1,4 +1,4 @@
-const CACHE_NAME = "noor-for-living-v13";
+const CACHE_NAME = "noor-for-living-v14";
 const APP_SHELL = ["/", "/offline/", "/static/css/app.css", "/static/css/luxury.css", "/static/css/calendar.css", "/static/js/calendar.js", "/static/js/app.js", "/static/css/auth.css", "/static/css/worship.css", "/static/js/worship.js", "/static/css/quran.css", "/static/js/quran.js", "/static/css/remembrance.css", "/static/js/remembrance.js", "/static/css/tracker.css", "/static/css/ask-noor.css", "/static/css/dashboard.css", "/daily-remembrance/", "/prayer-times/", "/qibla/", "/islamic-calendar/"];
 const PRIVATE_PATHS = ["/accounts/dashboard/", "/my-bookmarks/", "/quran/", "/ask-noor/", "/my-journey/"];
 
