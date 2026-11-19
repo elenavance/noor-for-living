@@ -149,9 +149,28 @@ class AccountFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["log"].fajr)
 
-    def test_bookmarks_page_requires_login(self):
+    def test_guest_can_open_bookmarks_page(self):
         response = self.client.get(reverse("my_bookmarks"))
-        self.assertRedirects(response, f"{reverse('login')}?next={reverse('my_bookmarks')}")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["is_guest"])
+        self.assertContains(response, "stay on this device")
+        self.assertContains(response, 'id="guest-bookmarks-list"')
+
+    def test_signed_in_bookmarks_page_shows_account_bookmarks(self):
+        user = User.objects.create_user(username="bookmark_page_member", password="SecureTestPass_482!")
+        QuranBookmark.objects.create(user=user, surah_number=1, ayah_number=1, surah_name="Al-Fatihah", arabic_text="بِسْمِ اللَّهِ")
+        self.client.force_login(user)
+        response = self.client.get(reverse("my_bookmarks"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_guest"])
+        self.assertContains(response, "Al-Fatihah")
+
+    def test_guest_cannot_delete_server_bookmark_by_id(self):
+        owner = User.objects.create_user(username="bookmark_owner", password="SecureTestPass_482!")
+        bookmark = QuranBookmark.objects.create(user=owner, surah_number=1, ayah_number=1, surah_name="Al-Fatihah", arabic_text="text")
+        response = self.client.post(reverse("delete_bookmark", args=[bookmark.id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('delete_bookmark', args=[bookmark.id])}")
+        self.assertTrue(QuranBookmark.objects.filter(id=bookmark.id).exists())
 
     def test_bookmark_saved_to_signed_in_user(self):
         user = User.objects.create_user(username="member", password="SecureTestPass_482!")

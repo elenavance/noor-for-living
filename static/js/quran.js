@@ -2,6 +2,8 @@
   const API = "https://api.alquran.cloud/v1";
   const AUDIO_EDITION = "ar.alafasy";
   const select = document.getElementById("surah-select"), status = document.getElementById("quran-status");
+  // This shared script also runs on the saved-verses page.
+  if (!select || !status || !document.getElementById("ayah-list")) return;
   const heading = document.getElementById("surah-heading"), title = document.getElementById("surah-title");
   const meta = document.getElementById("surah-meta"), translation = document.getElementById("surah-translation"), list = document.getElementById("ayah-list");
   const config = window.NOOR_QURAN_CONFIG || {}, saved = new Set(config.savedVerses || []);
@@ -402,4 +404,81 @@
   }
 
   init();
+})();
+
+
+/* Guest bookmark collection page: local-only, never sent to the server. */
+(() => {
+  const config = window.NOOR_BOOKMARKS_CONFIG;
+  if (!config || !config.isGuest) return;
+  const list = document.getElementById("guest-bookmarks-list");
+  const empty = document.getElementById("guest-bookmarks-empty");
+  if (!list || !empty) return;
+  const storageKey = "noor.guestBookmarks";
+  const read = () => {
+    try {
+      const value = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    } catch (_) { return {}; }
+  };
+  const render = () => {
+    const bookmarks = read();
+    list.replaceChildren();
+    const entries = Object.entries(bookmarks).sort((a, b) => {
+      const [as, aa] = a[0].split(":").map(Number);
+      const [bs, ba] = b[0].split(":").map(Number);
+      return as - bs || aa - ba;
+    });
+    entries.forEach(([reference, item]) => {
+      const article = document.createElement("article");
+      article.className = "saved-verse";
+      const top = document.createElement("div");
+      top.className = "saved-verse-top";
+      const label = document.createElement("span");
+      label.className = "eyebrow";
+      label.textContent = (item.name || "Surah") + " · " + reference;
+      const remove = document.createElement("button");
+      remove.className = "bookmark-remove";
+      remove.type = "button";
+      remove.textContent = "Remove ×";
+      remove.setAttribute("aria-label", "Remove saved verse " + reference);
+      remove.addEventListener("click", () => {
+        const latest = read();
+        delete latest[reference];
+        try { localStorage.setItem(storageKey, JSON.stringify(latest)); }
+        catch (_) {}
+        render();
+        const toast = document.createElement("div");
+        toast.className = "noor-toast";
+        toast.setAttribute("role", "status");
+        toast.textContent = "Removed from this device.";
+        document.body.appendChild(toast);
+        window.setTimeout(() => toast.remove(), 2500);
+      });
+      top.append(label, remove);
+      const arabic = document.createElement("p");
+      arabic.className = "ayah-arabic";
+      arabic.lang = "ar";
+      arabic.dir = "rtl";
+      arabic.setAttribute("translate", "no");
+      arabic.textContent = item.arabic || "";
+      const translation = document.createElement("p");
+      translation.className = "ayah-translation";
+      translation.textContent = item.translation || "";
+      const link = document.createElement("a");
+      link.className = "text-link";
+      const surah = item.surah || reference.split(":")[0];
+      const ayah = item.ayah || reference.split(":")[1];
+      link.href = "/quran/?surah=" + encodeURIComponent(surah) + "#ayah-" + encodeURIComponent(ayah);
+      link.textContent = "Read this surah ↗";
+      article.append(top, arabic, translation, link);
+      list.appendChild(article);
+    });
+    list.hidden = entries.length === 0;
+    empty.hidden = entries.length !== 0;
+  };
+  render();
+  window.addEventListener("storage", event => {
+    if (event.key === storageKey) render();
+  });
 })();
