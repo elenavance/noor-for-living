@@ -39,9 +39,15 @@
     </section>
     <section class="location-panel">
       <div><span class="panel-icon">⌖</span><div><p class="eyebrow">YOUR LOCATION</p><h2 id="location-title">Checking saved location…</h2><p id="location-detail">Your saved location is reused automatically. Set it once, then refresh only if you move.</p></div></div>
-      <div class="location-actions"><button class="button button-gold" id="locate-button" type="button">Set / refresh location <span>↗</span></button></div>
+      <div class="location-actions"><button class="button button-gold" id="locate-button" type="button">Set / refresh location <span>↗</span></button><button class="button" id="allow-location-button" type="button">Allow Location</button></div>
       <div class="manual-city">
-        <input id="city-input" type="text" placeholder="Or type your city, e.g. Jakarta, Bandung, Surabaya…" autocomplete="off">
+        <select id="city-input" aria-label="Choose your city">
+<option value="">Choose your city</option>
+<option>Jakarta</option><option>Bandung</option><option>Surabaya</option>
+<option>Yogyakarta</option><option>Medan</option><option>Makassar</option>
+<option>Semarang</option><option>Palembang</option>
+<option value="__location__">Use my location</option>
+</select>
         <button id="city-button" type="button">Use this city</button>
       </div>
     </section>

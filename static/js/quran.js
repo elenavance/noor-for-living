@@ -7,6 +7,13 @@
   const heading = document.getElementById("surah-heading"), title = document.getElementById("surah-title");
   const meta = document.getElementById("surah-meta"), translation = document.getElementById("surah-translation"), list = document.getElementById("ayah-list");
   const config = window.NOOR_QURAN_CONFIG || {}, saved = new Set(config.savedVerses || []);
+    if (!config.isAuthenticated) {
+      try {
+        const guest = JSON.parse(localStorage.getItem("noor.guestBookmarks") || "{}");
+        if (guest && typeof guest === "object" && !Array.isArray(guest))
+          Object.keys(guest).forEach(reference => saved.add(reference));
+      } catch (_) {}
+    }
   const csrf = document.querySelector("#csrf-form [name=csrfmiddlewaretoken]")?.value || "";
   let activeObserver = null, progressSaveTimer = null, latestProgress = null, savingProgress = false;
 
@@ -26,12 +33,39 @@
     status.classList.toggle("is-error", error);
   }
 
+  function showQuranOfflineBanner() {
+    let banner = document.getElementById("quran-offline-banner");
+    if (!banner) {
+      banner = make("div", "quran-offline-banner", "Offline — showing your last saved Quran page. Connect to update.");
+      banner.id = "quran-offline-banner";
+      banner.setAttribute("role", "status");
+      banner.style.cssText = "margin:12px 0;padding:12px 16px;border-radius:10px;background:#fff0bd;color:#634900;font-weight:600;";
+      status.insertAdjacentElement("afterend", banner);
+    }
+  }
+
   async function apiGet(url) {
-    const response = await fetch(url, {headers: {Accept: "application/json"}});
-    if (!response.ok) throw new Error("The Quran text service is temporarily unavailable. Please try again.");
-    const payload = await response.json();
-    if (payload.code !== 200 || !payload.data) throw new Error("The Quran text could not be loaded.");
-    return payload.data;
+    const cacheKey = "noor.quran.api.v1:" + url;
+    try {
+      const response = await fetch(url, {headers: {Accept: "application/json"}});
+      if (!response.ok) throw new Error("The Quran text service is temporarily unavailable. Please try again.");
+      const payload = await response.json();
+      if (payload.code !== 200 || !payload.data) throw new Error("The Quran text could not be loaded.");
+      try { localStorage.setItem(cacheKey, JSON.stringify(payload.data)); } catch (_) {}
+      return payload.data;
+    } catch (error) {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (data) {
+            showQuranOfflineBanner();
+            return data;
+          }
+        }
+      } catch (_) {}
+      throw error;
+    }
   }
 
   function make(tag, cls, text) {
@@ -242,12 +276,43 @@
 
     const top = make("div", "ayah-card-top");
     top.append(make("span", "ayah-reference", reference));
-    const button = make("button", "bookmark-button", saved.has(reference) ? "\u2605 Saved" : "\u2606 Save verse");
+    const button = make("button", "bookmark-button",
+      config.isAuthenticated
+        ? (saved.has(reference) ? "\u2605 Saved" : "\u2606 Save verse")
+        : (saved.has(reference) ? "Saved ✓" : "Save Bookmark ✓"));
     button.type = "button";
     button.setAttribute("aria-pressed", saved.has(reference) ? "true" : "false");
     button.addEventListener("click", async () => {
       if (!config.isAuthenticated) {
-        window.location.href = config.loginUrl + "?next=" + encodeURIComponent(window.location.pathname + window.location.search + "#ayah-" + ayah.numberInSurah);
+        const storageKey = "noor.guestBookmarks";
+        try {
+          const guest = JSON.parse(localStorage.getItem(storageKey) || "{}");
+          const latest = guest && typeof guest === "object" && !Array.isArray(guest) ? guest : {};
+          const isSaved = Boolean(latest[reference]);
+          if (isSaved) {
+            delete latest[reference];
+            saved.delete(reference);
+          } else {
+            latest[reference] = {
+              name: surah.englishName,
+              arabic: ayah.text,
+              translation: translatedAyah.text,
+              surah: surah.number,
+              ayah: ayah.numberInSurah
+            };
+            saved.add(reference);
+          }
+          localStorage.setItem(storageKey, JSON.stringify(latest));
+          button.textContent = isSaved ? "Save Bookmark ✓" : "Saved ✓";
+          button.setAttribute("aria-pressed", isSaved ? "false" : "true");
+          setStatus(isSaved ? "Bookmark removed from this device." : "Saved ✓");
+          const toast = make("div", "noor-toast", isSaved ? "Removed ✓" : "Saved ✓");
+          toast.setAttribute("role", "status");
+          document.body.appendChild(toast);
+          window.setTimeout(() => toast.remove(), 2200);
+        } catch (_) {
+          setStatus("Could not save this bookmark on your device. Check browser storage settings.", true);
+        }
         return;
       }
       button.disabled = true;

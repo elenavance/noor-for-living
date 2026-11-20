@@ -4,6 +4,11 @@
   const cityButton = document.getElementById("city-button");
   const cityInput = document.getElementById("city-input");
   const qiblaButton = document.getElementById("qibla-locate-button");
+    const allowLocationButton = document.getElementById("allow-location-button");
+    const qiblaAllowLocationButton = document.getElementById("qibla-allow-location-button");
+    let currentQiblaBearing = null;
+    let compassHeading = null;
+    let absoluteCompassSeen = false;
   const prayerStatus = document.getElementById("prayer-status");
   const qiblaStatus = document.getElementById("qibla-status");
   const prayerGrid = document.getElementById("prayer-grid");
@@ -217,18 +222,45 @@
     url.searchParams.set("latitude", String(location.lat));
     url.searchParams.set("longitude", String(location.lon));
     url.searchParams.set("method", "20");
-    const response = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("The prayer-time service is temporarily unavailable. Please try again later.");
-    const payload = await response.json();
-    if (payload.code !== 200 || !payload.data || !payload.data.timings) {
-      throw new Error("Prayer times could not be calculated for this location.");
+    const cacheKey = "noor.prayerTimes.v1:" + formatDateForApi(date) + ":" + location.lat.toFixed(3) + ":" + location.lon.toFixed(3);
+    let payload, usingOfflineCache = false;
+    try {
+      const response = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("The prayer-time service is temporarily unavailable. Please try again later.");
+      payload = await response.json();
+      if (payload.code !== 200 || !payload.data || !payload.data.timings)
+        throw new Error("Prayer times could not be calculated for this location.");
+      try { localStorage.setItem(cacheKey, JSON.stringify(payload.data)); } catch (_) {}
+    } catch (error) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+        if (!cached || !cached.timings) throw error;
+        payload = {data: cached};
+        usingOfflineCache = true;
+      } catch (_) {
+        throw error;
+      }
     }
     todayTimings = payload.data.timings;
     showPrayerTimes(todayTimings);
     startCountdown(todayTimings);
     schedulePrayerReminders(todayTimings);
-    const method = payload.data.meta && payload.data.meta.method && payload.data.meta.method.name;
-    setStatus(prayerStatus, "Schedule loaded" + (method ? " \u00B7 " + method : "") + ". Please confirm locally before relying on it.");
+    let offlineBanner = document.getElementById("prayer-offline-banner");
+    if (usingOfflineCache) {
+      if (!offlineBanner) {
+        offlineBanner = document.createElement("div");
+        offlineBanner.id = "prayer-offline-banner";
+        offlineBanner.setAttribute("role", "status");
+        offlineBanner.style.cssText = "margin:10px 0;padding:12px 16px;border-radius:10px;background:#fff0bd;color:#634900;font-weight:600;";
+        prayerStatus.insertAdjacentElement("afterend", offlineBanner);
+      }
+      offlineBanner.textContent = "Offline — showing last saved times. Connect to update.";
+      setStatus(prayerStatus, "Showing saved prayer times for this date and location.");
+    } else {
+      if (offlineBanner) offlineBanner.remove();
+      const method = payload.data.meta && payload.data.meta.method && payload.data.meta.method.name;
+      setStatus(prayerStatus, "Schedule loaded" + (method ? " · " + method : "") + ". Please confirm locally before relying on it.");
+    }
   }
 
   function qiblaData(location) {
@@ -252,14 +284,74 @@
     return directions[Math.round(degrees / 22.5) % 16];
   }
 
+  function updateCompassNeedle() {
+    if (!needle || currentQiblaBearing === null) return;
+    const heading = compassHeading === null ? 0 : compassHeading;
+    needle.style.transform = "translate(-50%, -50%) rotate(" +
+      (currentQiblaBearing - heading) + "deg)";
+  }
+
+  function handleCompass(event) {
+    let heading = null;
+
+    // iOS exposes a proprietary heading; do not use it as the Android path.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS && typeof event.webkitCompassHeading === "number") {
+      heading = event.webkitCompassHeading;
+    } else if (typeof event.alpha === "number") {
+      // deviceorientationabsolute is preferred on Android.
+      if (event.type === "deviceorientationabsolute") {
+        absoluteCompassSeen = true;
+        heading = (360 - event.alpha) % 360;
+      } else if (!absoluteCompassSeen) {
+        heading = (360 - event.alpha) % 360;
+      }
+    }
+
+    if (heading !== null && Number.isFinite(heading)) {
+      compassHeading = heading;
+      updateCompassNeedle();
+    }
+  }
+
+  function startCompass() {
+    if (!needle) return;
+    window.addEventListener("deviceorientationabsolute", handleCompass, true);
+    window.addEventListener("deviceorientation", handleCompass, true);
+  }
+
+  async function requestCompassPermission() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS && typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function") {
+      const permission = await DeviceOrientationEvent.requestPermission();
+      if (permission !== "granted") {
+        throw new Error("Compass permission was not granted. You can still use the bearing number.");
+      }
+    }
+    startCompass();
+  }
+
   async function loadQibla(location) {
-    setStatus(qiblaStatus, "Calculating Qibla direction\u2026");
+    setStatus(qiblaStatus, "Calculating Qibla direction…");
     const result = qiblaData(location);
-    if (needle) needle.style.transform = "translate(-50%, -50%) rotate(" + result.bearing + "deg)";
-    if (bearingLabel) bearingLabel.textContent = result.bearing.toFixed(1) + "\u00B0";
+    currentQiblaBearing = result.bearing;
+
+    if (bearingLabel) bearingLabel.textContent = result.bearing.toFixed(1) + "°";
     if (cardinalLabel) cardinalLabel.textContent = cardinalDirection(result.bearing) + " from true north";
     if (distanceLabel) distanceLabel.textContent = Math.round(result.distance).toLocaleString("en") + " km to the Kaaba";
-    setStatus(qiblaStatus, "Direction calculated from your coordinates. This is a geographic bearing, not a live magnetic compass.");
+
+    updateCompassNeedle();
+    startCompass();
+    setStatus(qiblaStatus,
+      compassHeading === null
+        ? "Bearing calculated. Move your phone in a figure-8 if the compass needle does not respond."
+        : "Live compass active. Keep your phone away from metal and magnetic objects."
+    );
   }
 
   if (soundToggle) {
@@ -306,6 +398,13 @@
 
   async function submitCity() {
     const query = (cityInput.value || "").trim();
+    if (query === "__location__") {
+      cityButton.disabled = true;
+      try { await loadPrayerTimes(await getLocation(true)); }
+      catch (error) { setStatus(prayerStatus, error.message || "Could not get your location.", true); }
+      finally { cityButton.disabled = false; cityInput.value = ""; }
+      return;
+    }
     if (query.length < 2) { setStatus(prayerStatus, "Type a city or town name first, e.g. \"Bandung\".", true); return; }
     cityButton.disabled = true;
     setStatus(prayerStatus, "Searching for \"" + query + "\"\u2026");
@@ -319,17 +418,40 @@
   }
   if (cityButton && cityInput) {
     cityButton.addEventListener("click", submitCity);
-    cityInput.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); submitCity(); } });
   }
 
   const savedLocation = readSavedLocation();
   if (savedLocation && prayerGrid) loadPrayerTimes(savedLocation).catch(error => setStatus(prayerStatus, error.message, true));
   if (savedLocation && needle) loadQibla(savedLocation).catch(error => setStatus(qiblaStatus, error.message, true));
 
+  async function allowLocationAndCompass(button, statusElement) {
+    if (button) button.disabled = true;
+    try {
+      await requestCompassPermission();
+      const location = await getLocation(true);
+      if (prayerGrid) await loadPrayerTimes(location);
+      if (needle) await loadQibla(location);
+    } catch (error) {
+      setStatus(statusElement, error.message || "Please allow location access in your browser settings.", true);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  if (allowLocationButton) {
+    allowLocationButton.addEventListener("click", () =>
+      allowLocationAndCompass(allowLocationButton, prayerStatus));
+  }
+  if (qiblaAllowLocationButton) {
+    qiblaAllowLocationButton.addEventListener("click", () =>
+      allowLocationAndCompass(qiblaAllowLocationButton, qiblaStatus));
+  }
+
   if (qiblaButton) qiblaButton.addEventListener("click", async () => {
     qiblaButton.disabled = true;
     qiblaButton.classList.add("is-loading");
     try {
+      await requestCompassPermission();
       await loadQibla(await getLocation(true));
     } catch (error) {
       setStatus(qiblaStatus, error.message || "Something went wrong. Please try again.", true);

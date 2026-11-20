@@ -119,9 +119,11 @@ class AccountFlowTests(TestCase):
         response = self.client.post(reverse("login"), {"username":"member","password":"SecureTestPass_482!"})
         self.assertRedirects(response, reverse("dashboard"))
 
-    def test_worship_tracker_requires_login(self):
+    def test_guest_can_open_worship_tracker(self):
         response = self.client.get(reverse("worship_tracker"))
-        self.assertRedirects(response, f"{reverse('login')}?next={reverse('worship_tracker')}")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["guest_mode"])
+        self.assertContains(response, "Your daily intentions")
 
     def test_worship_tracker_saves_private_daily_progress(self):
         user = User.objects.create_user(username="tracker_member", password="SecureTestPass_482!")
