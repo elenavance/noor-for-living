@@ -32,9 +32,9 @@
       <p class="eyebrow">CALCULATED BEARING FROM TRUE NORTH</p>
       <div class="bearing-readout"><strong id="qibla-bearing">—°</strong><span id="qibla-cardinal">Awaiting location</span></div>
       <p id="qibla-distance" class="qibla-distance">Your distance to the Kaaba will appear here.</p>
-      <button class="button button-gold" id="qibla-locate-button" type="button">Refresh my location <span>↗</span></button>
+      <div class="qibla-actions"><button class="button button-gold" id="qibla-locate-button" type="button">Refresh my location <span>↗</span></button><button class="button" id="qibla-allow-location-button" type="button">Allow Location</button></div>
       <p id="qibla-status" class="status-message" role="status" aria-live="polite">Location is requested only when you tap the button. If you already saved your location on this device, the Qibla direction appears automatically; set it once on Prayer Times or refresh it if you move.</p>
-      <p class="fine-print">This page calculates a geographic bearing, not a certified magnetic-compass reading. Phone sensors can be affected by calibration, nearby metal, and interference. Follow your local mosque's guidance when precision is important.</p>
+      <p class="fine-print">If the needle doesn't move: move your phone in a figure-8 slowly 3 times, then tap Refresh. Keep away from metal and magnetic objects. The large bearing number remains available even if your phone has no compass sensor.</p>
     </section>
     <section class="worship-shortcut"><div><p class="eyebrow">YOUR DAILY SCHEDULE</p><h2>Make time for <i>each prayer.</i></h2><p>View today's prayer times for your location.</p></div><a class="button button-gold" href="{% url 'prayer_times' %}">Prayer times <span>↗</span></a></section>
   </main>

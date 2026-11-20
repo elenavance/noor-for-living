@@ -1,5 +1,6 @@
 from django.conf import settings
 from datetime import timedelta
+from types import SimpleNamespace
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
@@ -107,23 +108,37 @@ def daily_remembrance(request):
 
 
 
-@login_required
 def worship_tracker(request):
     today = timezone.localdate()
-    log, _ = DailyWorshipLog.objects.get_or_create(user=request.user, date=today)
-    if request.method == "POST":
-        fields = ("fajr", "dhuhr", "asr", "maghrib", "isha", "quran_reading", "dhikr", "gratitude")
-        for field in fields:
-            setattr(log, field, field in request.POST)
-        log.reflection = request.POST.get("reflection", "").strip()[:500]
-        log.save()
-        return redirect("worship_tracker")
+    guest_mode = not request.user.is_authenticated
 
-    week_start = today - timedelta(days=6)
-    saved_logs = {
-        item.date: item
-        for item in DailyWorshipLog.objects.filter(user=request.user, date__gte=week_start, date__lte=today)
-    }
+    if guest_mode:
+        log = SimpleNamespace(
+            fajr=False, dhuhr=False, asr=False, maghrib=False, isha=False,
+            quran_reading=False, dhikr=False, gratitude=False, reflection="",
+            completed_count=0, progress_percent=0,
+        )
+        if request.method == "POST":
+            return redirect("worship_tracker")
+        saved_logs = {}
+    else:
+        log, _ = DailyWorshipLog.objects.get_or_create(user=request.user, date=today)
+        if request.method == "POST":
+            fields = ("fajr", "dhuhr", "asr", "maghrib", "isha", "quran_reading", "dhikr", "gratitude")
+            for field in fields:
+                setattr(log, field, field in request.POST)
+            log.reflection = request.POST.get("reflection", "").strip()[:500]
+            log.save()
+            return redirect("worship_tracker")
+
+        week_start = today - timedelta(days=6)
+        saved_logs = {
+            item.date: item
+            for item in DailyWorshipLog.objects.filter(
+                user=request.user, date__gte=week_start, date__lte=today
+            )
+        }
+
     week = []
     for offset in range(6, -1, -1):
         day = today - timedelta(days=offset)
@@ -135,6 +150,7 @@ def worship_tracker(request):
             "percent": day_log.progress_percent if day_log else 0,
             "is_today": day == today,
         })
+
     completed_total = sum(day["completed"] for day in week)
     week_percent = round(completed_total / 56 * 100)
     streak = 0
@@ -152,6 +168,7 @@ def worship_tracker(request):
         "week_percent": week_percent,
         "streak": streak,
         "completed_total": completed_total,
+        "guest_mode": guest_mode,
         "activity_fields": (
             ("fajr", "Fajr", "Dawn prayer"),
             ("dhuhr", "Dhuhr", "Midday prayer"),
@@ -256,7 +273,6 @@ def save_quran_progress(request):
     })
 
 
-@login_required
 def my_bookmarks(request):
     # Guest bookmarks live only in the visitor browser localStorage.
     bookmarks = request.user.quran_bookmarks.all() if request.user.is_authenticated else []

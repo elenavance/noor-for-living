@@ -1,19 +1,94 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123c32"><title>My Spiritual Journey — NOOR FOR LIVING</title><link rel="stylesheet" href="/static/css/app.css"><link rel="stylesheet" href="/static/css/luxury.css"><link rel="stylesheet" href="/static/css/worship.css"><link rel="stylesheet" href="/static/css/tracker.css"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet"></head>
-<body class="worship-page tracker-page" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}"><header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><nav class="top-nav"><a href="{% url 'prayer_times' %}">Prayer times</a><a href="{% url 'quran_reader' %}">Quran</a><a href="{% url 'daily_remembrance' %}">Duas &amp; dhikr</a></nav></header>
+<body class="worship-page tracker-page" data-noor-user="{% if user.is_authenticated %}{{ user.first_name|default:user.username|escape }}{% endif %}" data-guest-tracker="{% if guest_mode %}1{% else %}0{% endif %}" data-tracker-date="{{ today|date:'Y-m-d' }}"><header class="topbar"><a class="brand" href="/"><span class="brand-mark">✦</span><span>NOOR <em>FOR</em> LIVING</span></a><nav class="top-nav"><a href="{% url 'prayer_times' %}">Prayer times</a><a href="{% url 'quran_reader' %}">Quran</a><a href="{% url 'daily_remembrance' %}">Duas &amp; dhikr</a></nav></header>
 <main class="worship-main tracker-main"><a class="back-link" href="{% url 'dashboard' %}">← My Journey</a><section class="worship-heading"><p class="eyebrow">SMALL STEPS, SINCERE INTENTIONS</p><h1>Your spiritual <i>journey.</i></h1><p>Keep a gentle record of your daily worship. This is a private tool for reflection, not a measure of your worth or faith.</p></section>
-<section class="tracker-overview"><div class="tracker-progress-card"><div class="tracker-card-label"><span>TODAY'S PROGRESS</span><span>{{ log.completed_count }} OF 8</span></div><div class="tracker-ring" style="--progress:{{ log.progress_percent }}"><div><strong>{{ log.progress_percent }}%</strong><small>completed</small></div></div><h2>Begin where you are.</h2><p>Every sincere step matters.</p></div><div class="tracker-stats"><article><p class="tracker-stat-label">THIS WEEK</p><strong>{{ week_percent }}%</strong><small>of possible check-ins</small></article><article><p class="tracker-stat-label">CURRENT STREAK</p><strong>{{ streak }} <small>day{{ streak|pluralize }}</small></strong><small>with an activity</small></article><article><p class="tracker-stat-label">CHECK-INS THIS WEEK</p><strong>{{ completed_total }} <small>/ 56</small></strong><small>activities completed</small></article></div></section>
+<section class="tracker-overview"><div class="tracker-progress-card"><div class="tracker-card-label"><span>TODAY'S PROGRESS</span><span id="tracker-count">{{ log.completed_count }} OF 8</span></div><p id="tracker-prayer-count" class="guest-prayer-count" aria-live="polite">Today: 0 / 5 prayers done</p><div class="tracker-ring" style="--progress:{{ log.progress_percent }}"><div><strong>{{ log.progress_percent }}%</strong><small>completed</small></div></div><h2>Begin where you are.</h2><p>Every sincere step matters.</p></div><div class="tracker-stats"><article><p class="tracker-stat-label">THIS WEEK</p><strong>{{ week_percent }}%</strong><small>of possible check-ins</small></article><article><p class="tracker-stat-label">CURRENT STREAK</p><strong>{{ streak }} <small>day{{ streak|pluralize }}</small></strong><small>with an activity</small></article><article><p class="tracker-stat-label">CHECK-INS THIS WEEK</p><strong>{{ completed_total }} <small>/ 56</small></strong><small>activities completed</small></article></div></section>
 <section class="tracker-panel"><div class="tracker-panel-heading"><div><p class="eyebrow">TODAY · {{ today|date:"l, F j" }}</p><h2>Your daily intentions</h2></div><span class="tracker-lock">PRIVATE TO YOU</span></div>
 <form method="post" class="tracker-form">{% csrf_token %}<div class="tracker-check-grid">
-<label class="tracker-check"><input type="checkbox" name="fajr"{% if log.fajr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Fajr</strong><small>Dawn prayer</small></span></label>
-<label class="tracker-check"><input type="checkbox" name="dhuhr"{% if log.dhuhr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Dhuhr</strong><small>Midday prayer</small></span></label>
-<label class="tracker-check"><input type="checkbox" name="asr"{% if log.asr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Asr</strong><small>Afternoon prayer</small></span></label>
-<label class="tracker-check"><input type="checkbox" name="maghrib"{% if log.maghrib %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Maghrib</strong><small>Sunset prayer</small></span></label>
-<label class="tracker-check"><input type="checkbox" name="isha"{% if log.isha %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Isha</strong><small>Night prayer</small></span></label>
+<div class="tracker-prayer-row"><label class="tracker-check"><input type="checkbox" name="fajr"{% if log.fajr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Fajr</strong><small>Dawn prayer</small></span></label><button type="button" class="tracker-done-button" aria-pressed="{% if log.fajr %}true{% else %}false{% endif %}" onclick="const f=this.parentElement.querySelector('input');f.checked=!f.checked;this.textContent=f.checked?'Done ✓':'Done';this.setAttribute('aria-pressed',String(f.checked));f.dispatchEvent(new Event('change',{bubbles:true}));">{% if log.fajr %}Done ✓{% else %}Done{% endif %}</button></div>
+<div class="tracker-prayer-row"><label class="tracker-check"><input type="checkbox" name="dhuhr"{% if log.dhuhr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Dhuhr</strong><small>Midday prayer</small></span></label><button type="button" class="tracker-done-button" aria-pressed="{% if log.dhuhr %}true{% else %}false{% endif %}" onclick="const f=this.parentElement.querySelector('input');f.checked=!f.checked;this.textContent=f.checked?'Done ✓':'Done';this.setAttribute('aria-pressed',String(f.checked));f.dispatchEvent(new Event('change',{bubbles:true}));">{% if log.dhuhr %}Done ✓{% else %}Done{% endif %}</button></div>
+<div class="tracker-prayer-row"><label class="tracker-check"><input type="checkbox" name="asr"{% if log.asr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Asr</strong><small>Afternoon prayer</small></span></label><button type="button" class="tracker-done-button" aria-pressed="{% if log.asr %}true{% else %}false{% endif %}" onclick="const f=this.parentElement.querySelector('input');f.checked=!f.checked;this.textContent=f.checked?'Done ✓':'Done';this.setAttribute('aria-pressed',String(f.checked));f.dispatchEvent(new Event('change',{bubbles:true}));">{% if log.asr %}Done ✓{% else %}Done{% endif %}</button></div>
+<div class="tracker-prayer-row"><label class="tracker-check"><input type="checkbox" name="maghrib"{% if log.maghrib %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Maghrib</strong><small>Sunset prayer</small></span></label><button type="button" class="tracker-done-button" aria-pressed="{% if log.maghrib %}true{% else %}false{% endif %}" onclick="const f=this.parentElement.querySelector('input');f.checked=!f.checked;this.textContent=f.checked?'Done ✓':'Done';this.setAttribute('aria-pressed',String(f.checked));f.dispatchEvent(new Event('change',{bubbles:true}));">{% if log.maghrib %}Done ✓{% else %}Done{% endif %}</button></div>
+<div class="tracker-prayer-row"><label class="tracker-check"><input type="checkbox" name="isha"{% if log.isha %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Isha</strong><small>Night prayer</small></span></label><button type="button" class="tracker-done-button" aria-pressed="{% if log.isha %}true{% else %}false{% endif %}" onclick="const f=this.parentElement.querySelector('input');f.checked=!f.checked;this.textContent=f.checked?'Done ✓':'Done';this.setAttribute('aria-pressed',String(f.checked));f.dispatchEvent(new Event('change',{bubbles:true}));">{% if log.isha %}Done ✓{% else %}Done{% endif %}</button></div>
 <label class="tracker-check"><input type="checkbox" name="quran_reading"{% if log.quran_reading %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Quran reading</strong><small>Read or reflect</small></span></label>
 <label class="tracker-check"><input type="checkbox" name="dhikr"{% if log.dhikr %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Dhikr</strong><small>Remember Allah</small></span></label>
 <label class="tracker-check"><input type="checkbox" name="gratitude"{% if log.gratitude %} checked{% endif %}><span class="check-mark">✓</span><span class="tracker-check-copy"><strong>Gratitude</strong><small>Notice a blessing</small></span></label>
 </div><label class="reflection-label" for="reflection">A thought to carry with you <span>OPTIONAL</span></label><textarea id="reflection" name="reflection" rows="3" maxlength="500" placeholder="What are you grateful for today?">{{ log.reflection }}</textarea><p class="reflection-help">Up to 500 characters. Visible only to your account.</p><div class="tracker-submit-row"><p>Save your checklist to keep today's progress.</p><button class="button button-gold tracker-save" type="submit">Save today's progress <span>↗</span></button></div></form></section>
 <section class="tracker-panel weekly-panel"><div class="tracker-panel-heading"><div><p class="eyebrow">THE LAST SEVEN DAYS</p><h2>Consistency over perfection.</h2></div><span class="tracker-lock">8 ACTIVITIES / DAY</span></div><div class="week-chart">{% for day in week %}<div class="week-day{% if day.is_today %} is-today{% endif %}"><div class="week-bar-track"><div class="week-bar-fill" style="height:{{ day.percent }}%"></div></div><strong>{{ day.completed }}<small>/8</small></strong><span>{{ day.label }}</span></div>{% endfor %}</div><p class="tracker-footnote">Days without a saved entry appear as zero. If you miss a day, simply begin again.</p></section>
 <section class="tracker-links"><a href="{% url 'prayer_times' %}"><span>◔</span><div><strong>Prayer times</strong><small>Check today's schedule</small></div><b>↗</b></a><a href="{% url 'quran_reader' %}"><span>۞</span><div><strong>Read the Quran</strong><small>Continue reading and save verses</small></div><b>↗</b></a><a href="{% url 'daily_remembrance' %}"><span>☾</span><div><strong>Duas &amp; dhikr</strong><small>Make room for remembrance</small></div><b>↗</b></a></section></main>
-<nav class="bottom-nav"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item active" href="{% url 'worship_tracker' %}"><span>✓</span><small>Track</small></a><a class="nav-item" href="{% url 'daily_remembrance' %}"><span>☾</span><small>Duas</small></a><a class="nav-item" href="{% url 'quran_reader' %}"><span>۞</span><small>Quran</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>◉</span><small>Profile</small></a></nav><script src="/static/js/app.js" defer></script></body></html>
+<nav class="bottom-nav"><a class="nav-item" href="/"><span>⌂</span><small>Home</small></a><a class="nav-item active" href="{% url 'worship_tracker' %}"><span>✓</span><small>Track</small></a><a class="nav-item" href="{% url 'daily_remembrance' %}"><span>☾</span><small>Duas</small></a><a class="nav-item" href="{% url 'quran_reader' %}"><span>۞</span><small>Quran</small></a><a class="nav-item" href="{% url 'dashboard' %}"><span>◉</span><small>Profile</small></a></nav><script src="/static/js/app.js" defer></script>
+<script>
+(function () {
+  const body = document.body;
+  if (body.dataset.guestTracker !== "1") return;
+
+  const key = "noor.tracker.v1:" + body.dataset.trackerDate;
+  const form = document.querySelector(".tracker-form");
+  if (!form) return;
+
+  const names = ["fajr","dhuhr","asr","maghrib","isha","quran_reading","dhikr","gratitude"];
+  const fields = {};
+  names.forEach(name => {
+    fields[name] = form.querySelector('[name="' + name + '"]');
+  });
+
+  const reflection = form.querySelector('[name="reflection"]');
+  const status = document.createElement("p");
+  status.id = "guest-tracker-status";
+  status.setAttribute("role", "status");
+  form.appendChild(status);
+
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(key) || "{}");
+  } catch (_) {}
+
+  names.forEach(name => {
+    if (fields[name]) fields[name].checked = !!saved[name];
+  });
+  if (reflection) reflection.value = saved.reflection || "";
+
+  function render() {
+    const completed = names.filter(name => fields[name] && fields[name].checked).length;
+    const prayers = names.slice(0, 5).filter(name => fields[name] && fields[name].checked).length;
+    const percent = Math.round(completed / 8 * 100);
+
+    const count = document.getElementById("tracker-count");
+    const prayerCount = document.getElementById("tracker-prayer-count");
+    const ring = document.querySelector(".tracker-ring");
+    const percentText = ring && ring.querySelector("strong");
+
+    if (count) count.textContent = completed + " OF 8";
+    if (prayerCount) prayerCount.textContent = "Today: " + prayers + " / 5 prayers done";
+    if (ring) ring.style.setProperty("--progress", percent);
+    if (percentText) percentText.textContent = percent + "%";
+  }
+
+  function save() {
+    const data = {};
+    names.forEach(name => {
+      data[name] = !!(fields[name] && fields[name].checked);
+    });
+    data.reflection = reflection ? reflection.value.slice(0, 500) : "";
+
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      status.textContent = "Saved on this device ✓";
+    } catch (_) {
+      status.textContent = "Unable to save on this device. Check browser storage settings.";
+    }
+    render();
+  }
+
+  names.forEach(name => {
+    if (fields[name]) fields[name].addEventListener("change", save);
+  });
+  if (reflection) reflection.addEventListener("input", save);
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    save();
+  });
+  render();
+})();
+</script></body></html>
